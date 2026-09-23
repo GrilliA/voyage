@@ -2,7 +2,8 @@
 import { computed, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { api, errorMessage } from "../api/client";
-import type { CostLine, ProposalDetail, StepId } from "../api/types";
+import type { CostLine, FlightDetails, ProposalDetail, StepId } from "../api/types";
+import FlightForm from "../components/FlightForm.vue";
 import { formatMoney, formatPeople, routeParam } from "../format";
 
 type EditorStep = {
@@ -28,6 +29,8 @@ const people = ref(2);
 const current = ref<StepId>("persone");
 const confirmingDelete = ref(false);
 const saving = ref(false);
+const editingFlightId = ref<string | null>(null);
+const newFlightKey = ref(0);
 const draft = reactive({ label: "", amount: "" });
 
 const tripId = computed(() => routeParam(route.params.tripId));
@@ -105,6 +108,34 @@ async function savePeople() {
   }
 }
 
+async function addFlight(flight: FlightDetails) {
+  if (current.value !== "voli") return;
+  actionError.value = "";
+  saving.value = true;
+  try {
+    proposal.value = await api.addLine(tripId.value, proposalId.value, { category: "voli", ...flight });
+    newFlightKey.value += 1;
+    editingFlightId.value = null;
+  } catch (caught) {
+    actionError.value = errorMessage(caught);
+  } finally {
+    saving.value = false;
+  }
+}
+
+async function updateFlight(line: CostLine, flight: FlightDetails) {
+  actionError.value = "";
+  saving.value = true;
+  try {
+    proposal.value = await api.updateLine(tripId.value, proposalId.value, line.id, flight);
+    editingFlightId.value = null;
+  } catch (caught) {
+    actionError.value = errorMessage(caught);
+  } finally {
+    saving.value = false;
+  }
+}
+
 async function addLine() {
   actionError.value = "";
   const label = draft.label.trim();
@@ -177,6 +208,7 @@ watch(
     proposal.value = null;
     current.value = "persone";
     confirmingDelete.value = false;
+    editingFlightId.value = null;
     load();
   },
   { immediate: true },
@@ -247,21 +279,61 @@ watch(
             </label>
           </div>
           <template v-else>
-            <ul class="lines">
-              <li v-for="line in currentLines" :key="line.id" class="line">
-                <input v-model="line.label" type="text" aria-label="Descrizione" @blur="saveLine(line)" />
-                <input
-                  v-model.number="line.amount"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  aria-label="Importo in euro"
-                  @blur="saveLine(line)"
+            <ul v-if="currentLines.length" class="lines">
+              <li v-for="line in currentLines" :key="line.id">
+                <FlightForm
+                  v-if="line.flight && editingFlightId === line.id"
+                  :people="proposal.trip.people"
+                  :saving="saving"
+                  :flight="line.flight"
+                  submit-label="Salva"
+                  show-cancel
+                  @submit="updateFlight(line, $event)"
+                  @cancel="editingFlightId = null"
                 />
-                <button class="icon-button" type="button" aria-label="Rimuovi voce" @click="removeLine(line)">×</button>
+                <article v-else-if="line.flight" class="flight">
+                  <div class="flight-routes">
+                    <p><span>Andata</span> {{ line.flight.outboundFrom }} → {{ line.flight.outboundTo }}</p>
+                    <p><span>Ritorno</span> {{ line.flight.returnFrom }} → {{ line.flight.returnTo }}</p>
+                  </div>
+                  <div class="flight-foot">
+                    <p class="flight-price">
+                      <template v-if="line.flight.basis === 'persona'">
+                        {{ formatMoney(line.flight.price) }} a persona
+                        <small>{{ formatMoney(line.amount) }} nel totale</small>
+                      </template>
+                      <template v-else>{{ formatMoney(line.amount) }} totale</template>
+                    </p>
+                    <span class="actions">
+                      <button class="button ghost" type="button" @click="editingFlightId = line.id">Modifica</button>
+                      <button class="icon-button" type="button" aria-label="Rimuovi volo" @click="removeLine(line)">×</button>
+                    </span>
+                  </div>
+                </article>
+                <div v-else class="line">
+                  <input v-model="line.label" type="text" aria-label="Descrizione" @blur="saveLine(line)" />
+                  <input
+                    v-model.number="line.amount"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    aria-label="Importo in euro"
+                    @blur="saveLine(line)"
+                  />
+                  <button class="icon-button" type="button" aria-label="Rimuovi voce" @click="removeLine(line)">×</button>
+                </div>
               </li>
             </ul>
-            <form class="add-line" @submit.prevent="addLine">
+            <FlightForm
+              v-if="currentStep.id === 'voli'"
+              :key="newFlightKey"
+              :people="proposal.trip.people"
+              :saving="saving"
+              submit-label="Aggiungi volo"
+              suggest-return
+              @submit="addFlight"
+            />
+            <form v-else class="add-line" @submit.prevent="addLine">
               <input v-model="draft.label" type="text" maxlength="120" placeholder="Descrizione" aria-label="Nuova descrizione" />
               <input
                 v-model="draft.amount"

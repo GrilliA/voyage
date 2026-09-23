@@ -132,3 +132,81 @@ test("compares proposals and divides the cheapest total by people", async () => 
     assert.equal(invalid.status, 400);
   });
 });
+
+test("a flight stores the route and multiplies a per-person price", async () => {
+  await withApi(async (base) => {
+    const created = await api<TripDetail>(base, "/api/trips", {
+      method: "POST",
+      body: { title: "Ecuador", startDate: "2026-08-12", endDate: "2026-08-20", people: 2 },
+    });
+    assert.equal(created.status, 201);
+    assert.ok(created.data);
+    const tripId = created.data.id;
+
+    const proposal = await api<ProposalDetail>(base, `/api/trips/${tripId}/proposals`, {
+      method: "POST",
+      body: { title: "Via Quito" },
+    });
+    assert.ok(proposal.data);
+
+    const perPerson = await api<ProposalDetail>(base, `/api/trips/${tripId}/proposals/${proposal.data.id}/lines`, {
+      method: "POST",
+      body: {
+        category: "voli",
+        basis: "persona",
+        price: 150,
+        outboundFrom: "Milano",
+        outboundTo: "Quito",
+        returnFrom: "Quito",
+        returnTo: "Milano",
+      },
+    });
+    assert.equal(perPerson.status, 201);
+    const perPersonLine = perPerson.data?.lines[0];
+    assert.ok(perPersonLine);
+    assert.equal(perPersonLine.amount, 300);
+    assert.equal(perPersonLine.label, "Milano → Quito · Quito → Milano");
+    assert.equal(perPersonLine.flight?.basis, "persona");
+    assert.equal(perPersonLine.flight?.price, 150);
+    assert.equal(perPerson.data?.totals.total, 300);
+    assert.equal(perPerson.data?.totals.perPerson, 150);
+
+    const totalPrice = await api<ProposalDetail>(base, `/api/trips/${tripId}/proposals/${proposal.data.id}/lines`, {
+      method: "POST",
+      body: {
+        category: "voli",
+        basis: "totale",
+        price: 80,
+        outboundFrom: "Quito",
+        outboundTo: "Guayaquil",
+        returnFrom: "Guayaquil",
+        returnTo: "Quito",
+      },
+    });
+    assert.equal(totalPrice.status, 201);
+    const totalLine = totalPrice.data?.lines[1];
+    assert.ok(totalLine);
+    assert.equal(totalLine.amount, 80);
+    assert.equal(totalLine.flight?.basis, "totale");
+
+    const missing = await api(base, `/api/trips/${tripId}/proposals/${proposal.data.id}/lines`, {
+      method: "POST",
+      body: { category: "voli", basis: "totale", price: 10, outboundFrom: "Milano" },
+    });
+    assert.equal(missing.status, 400);
+
+    const resized = await api<TripDetail>(base, `/api/trips/${tripId}`, {
+      method: "PATCH",
+      body: { people: 4 },
+    });
+    assert.equal(resized.status, 200);
+
+    const again = await api<ProposalDetail>(base, `/api/trips/${tripId}/proposals/${proposal.data.id}`);
+    const scaled = again.data?.lines.find((line) => line.flight?.basis === "persona");
+    const unchanged = again.data?.lines.find((line) => line.flight?.basis === "totale");
+    assert.equal(scaled?.amount, 600);
+    assert.equal(scaled?.flight?.price, 150);
+    assert.equal(unchanged?.amount, 80);
+    assert.equal(again.data?.totals.total, 680);
+  });
+});

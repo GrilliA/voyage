@@ -33,6 +33,7 @@ export function presentProposal(trip: Trip, proposal: Proposal): ProposalDetail 
       category: line.category,
       label: line.label,
       amount: line.amount,
+      flight: line.flight,
     })),
     sections: CATEGORIES,
   };

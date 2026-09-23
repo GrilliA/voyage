@@ -375,6 +375,116 @@ input[type="number"]::-webkit-inner-spin-button {
   gap: 8px;
 }
 
+.flight-form {
+  display: grid;
+  gap: 16px;
+  margin-top: 22px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+}
+
+.lines .flight-form { margin-top: 0; }
+
+.basis {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 4px;
+  border-radius: 14px;
+  background: #f3efe7;
+}
+
+.basis button {
+  border: 0;
+  border-radius: 11px;
+  padding: 10px 12px;
+  background: transparent;
+  font-weight: 600;
+}
+
+.basis button.active {
+  background: #fff;
+  color: var(--accent);
+  box-shadow: 0 4px 12px rgba(60, 40, 20, 0.06);
+}
+
+.leg-set {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.leg-set legend {
+  padding: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.leg {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.leg .field + .field { margin-top: 0; }
+
+.flight-preview {
+  margin: -6px 0 0;
+  color: var(--muted);
+}
+
+.flight-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.flight {
+  display: grid;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+
+.flight-routes { display: grid; gap: 6px; }
+
+.flight-routes p {
+  display: flex;
+  gap: 12px;
+  margin: 0;
+}
+
+.flight-routes span {
+  flex: 0 0 4.6rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.flight-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.flight-price { margin: 0; }
+
+.flight-price small {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
 .add-line { margin-top: 12px; }
 
 .stage-nav { margin-top: auto; padding-top: 28px; justify-content: space-between; }
@@ -407,5 +517,6 @@ input[type="number"]::-webkit-inner-spin-button {
     padding-bottom: 4px;
   }
   .step { width: auto; flex: 0 0 auto; }
-  .line, .add-line, .split { grid-template-columns: 1fr; }
+  .line, .add-line, .split, .leg, .flight-foot { grid-template-columns: 1fr; }
+  .flight-foot { align-items: flex-start; flex-direction: column; }
 }

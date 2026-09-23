@@ -2,7 +2,7 @@
 
 A personal dashboard for comparing ways to take the same trip. It replaces the Excel sheets used to check costs.
 
-The app shows cards, not tables. On the home screen each card is a trip: title, dates, number of people, and the price of the cheapest proposal. Inside a trip, proposals are smaller cards with the total, the cost per person, and a "Lowest" mark when at least two proposals have a price. Opening a proposal starts a guided form, always in this order: people, flights, hotel / BnB, food, transport, activities, other.
+The app shows cards, not tables. On the home screen each card is a trip: title, dates, number of people, and the price of the cheapest proposal. Inside a trip, proposals are smaller cards with the total, the cost per person, and a "Lowest" mark when at least two proposals have a price. Opening a proposal starts a guided form, always in this order: people, flights, hotel / BnB, food, transport, activities, other. A flight is a round trip: outbound and return, each with a from and a to, plus a price that is either the total or per person. A per-person price is multiplied by the people on the trip.
 
 People belong to the trip. That number divides the total of every proposal on that trip.
 

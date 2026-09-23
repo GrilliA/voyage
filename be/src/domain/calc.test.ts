@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { flightTotal } from "../../../shared/domain.ts";
 import { proposalTotals } from "./calc.ts";
 
 test("sums categories and divides the total by people", () => {
@@ -33,6 +34,12 @@ test("rounds cents before dividing", () => {
   assert.equal(totals.byCategory.cibo, 0.3);
   assert.equal(totals.total, 0.3);
   assert.equal(totals.perPerson, 0.1);
+});
+
+test("keeps a total flight price and multiplies a per-person price", () => {
+  assert.equal(flightTotal(150, "totale", 2), 150);
+  assert.equal(flightTotal(150, "persona", 2), 300);
+  assert.equal(flightTotal(10.5, "persona", 4), 42);
 });
 
 test("returns no per-person amount when people is missing", () => {
