@@ -1,0 +1,42 @@
+---
+description: Simple TypeScript, pure functions, names that state their use
+globs: "**/*.{ts,vue}"
+alwaysApply: false
+---
+
+# Code style
+
+Four rules. If a shorter version is clear on the first read, use that.
+
+## TypeScript
+
+Product types come from `shared/domain.ts`. A category is `CategoryId`, not `string`. HTTP and JSON input stays `unknown` until `validate.ts` accepts it. No `any`. No `as`, except the boundary that reads `store.json`.
+
+## Functions
+
+A function calculates and returns a new value. It does not change the object it received.
+
+```ts
+function costPerPerson(totalCents: number, peopleCount: number): number {
+  return Math.round(totalCents / peopleCount);
+}
+```
+
+No classes, except `BadInput` and `NotFound`. No functional libraries, pipes, or monads. `map` and `filter` are enough.
+
+Side effects stay at the edges: writing the file in `store.ts`, answering a request, updating Vue view state. Totals and labels stay in `calc.ts`, `present.ts`, and `format.ts`.
+
+## Names
+
+The name says what is inside, or what the function does. Do not use `data`, `item`, `temp`, `res`, or `val` when a domain word exists.
+
+```ts
+const pricedProposals = proposals.filter((proposal) => proposal.priced);
+const cheapestTotal = Math.min(...pricedProposals.map((proposal) => proposal.totals.total));
+```
+
+A function starts with a verb: `formatMoney`, `presentTripSummary`. A boolean starts with `is` or `has`: `isPriced`, `hasProposals`.
+
+## Simple
+
+A function does one thing. If the name needs an explanation, rename it. Do not extract a helper that is used once. Do not add a layer "for later".
