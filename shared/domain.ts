@@ -2,7 +2,7 @@ export const CATEGORIES = [
   {
     id: "voli",
     label: "Voli",
-    hint: "Ogni volo della proposta, andata e ritorno compresi.",
+    hint: "Andata e ritorno. Il prezzo può essere il totale o a persona.",
   },
   {
     id: "alloggio",
@@ -67,11 +67,30 @@ export type TripDetail = TripSummary & {
   proposals: ProposalSummary[];
 };
 
+export type PriceBasis = "totale" | "persona";
+
+export type FlightDetails = {
+  basis: PriceBasis;
+  price: number;
+  outboundFrom: string;
+  outboundTo: string;
+  returnFrom: string;
+  returnTo: string;
+};
+
+export function flightTotal(price: number, basis: PriceBasis, peopleCount: number): number {
+  const cents = Number(price.toFixed(2).replace("-", "").replace(".", ""));
+  const signed = price < 0 ? -cents : cents;
+  const totalCents = basis === "persona" ? signed * peopleCount : signed;
+  return totalCents / 100;
+}
+
 export type CostLine = {
   id: string;
   category: CategoryId;
   label: string;
   amount: number;
+  flight: FlightDetails | null;
 };
 
 export type ProposalDetail = {

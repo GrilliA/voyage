@@ -1,4 +1,9 @@
-import { isCategoryId, type CategoryId } from "../../../shared/domain.ts";
+import {
+  isCategoryId,
+  type CategoryId,
+  type FlightDetails,
+  type PriceBasis,
+} from "../../../shared/domain.ts";
 import { BadInput } from "../errors.ts";
 import { toCents } from "./calc.ts";
 
@@ -56,6 +61,47 @@ export function money(value: unknown): number {
     throw new BadInput("L'importo non è valido.");
   }
   return cents / 100;
+}
+
+function place(value: unknown, emptyMessage: string, longMessage: string): string {
+  if (typeof value !== "string" || !value.trim()) throw new BadInput(emptyMessage);
+  const trimmed = value.trim();
+  if (trimmed.length > 40) throw new BadInput(longMessage);
+  return trimmed;
+}
+
+export function priceBasis(value: unknown): PriceBasis {
+  if (value !== "totale" && value !== "persona") {
+    throw new BadInput("Scegli se il prezzo è totale o a persona.");
+  }
+  return value;
+}
+
+export function flightInput(input: Record<string, unknown>): FlightDetails {
+  return {
+    basis: priceBasis(input.basis),
+    price: money(input.price),
+    outboundFrom: place(
+      input.outboundFrom,
+      "La partenza dell'andata è obbligatoria.",
+      "La partenza dell'andata è troppo lunga.",
+    ),
+    outboundTo: place(
+      input.outboundTo,
+      "L'arrivo dell'andata è obbligatorio.",
+      "L'arrivo dell'andata è troppo lungo.",
+    ),
+    returnFrom: place(
+      input.returnFrom,
+      "La partenza del ritorno è obbligatoria.",
+      "La partenza del ritorno è troppo lunga.",
+    ),
+    returnTo: place(
+      input.returnTo,
+      "L'arrivo del ritorno è obbligatorio.",
+      "L'arrivo del ritorno è troppo lungo.",
+    ),
+  };
 }
 
 export function category(value: unknown): CategoryId {

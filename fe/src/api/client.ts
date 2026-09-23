@@ -1,5 +1,6 @@
 import type {
   CategoryId,
+  FlightDetails,
   ProposalDetail,
   TripDetail,
   TripInput,
@@ -46,6 +47,10 @@ export type LineInput = {
   amount: number;
 };
 
+export type FlightInput = FlightDetails & {
+  category: "voli";
+};
+
 export type LinePatch = {
   label: string;
   amount: number;
@@ -69,12 +74,12 @@ export const api = {
     }),
   deleteProposal: (tripId: string, proposalId: string) =>
     request<void>(`/api/trips/${tripId}/proposals/${proposalId}`, { method: "DELETE" }),
-  addLine: (tripId: string, proposalId: string, body: LineInput) =>
+  addLine: (tripId: string, proposalId: string, body: LineInput | FlightInput) =>
     request<ProposalDetail>(`/api/trips/${tripId}/proposals/${proposalId}/lines`, {
       method: "POST",
       body,
     }),
-  updateLine: (tripId: string, proposalId: string, lineId: string, body: LinePatch) =>
+  updateLine: (tripId: string, proposalId: string, lineId: string, body: LinePatch | FlightDetails) =>
     request<ProposalDetail>(`/api/trips/${tripId}/proposals/${proposalId}/lines/${lineId}`, {
       method: "PATCH",
       body,

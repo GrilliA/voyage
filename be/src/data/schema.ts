@@ -26,5 +26,11 @@ export const costLines = pgTable("cost_lines", {
   category: text("category").notNull(),
   label: text("label").notNull(),
   amountCents: integer("amount_cents").notNull(),
+  priceBasis: text("price_basis"),
+  priceCents: integer("price_cents"),
+  outboundFrom: text("outbound_from"),
+  outboundTo: text("outbound_to"),
+  returnFrom: text("return_from"),
+  returnTo: text("return_to"),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull(),
 });
