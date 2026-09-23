@@ -33,7 +33,8 @@ export function createTripsRouter(store: Store) {
   router.get(
     "/",
     asyncRoute(async (_req, res) => {
-      res.json(store.listTrips().map(presentTripSummary));
+      const tripList = await store.listTrips();
+      res.json(tripList.map(presentTripSummary));
     }),
   );
 
@@ -48,7 +49,8 @@ export function createTripsRouter(store: Store) {
   router.get(
     "/:tripId",
     asyncRoute(async (req, res) => {
-      res.json(presentTripDetail(store.getTrip(routeId(req.params.tripId))));
+      const trip = await store.getTrip(routeId(req.params.tripId));
+      res.json(presentTripDetail(trip));
     }),
   );
 
@@ -82,7 +84,7 @@ export function createTripsRouter(store: Store) {
   router.get(
     "/:tripId/proposals/:proposalId",
     asyncRoute(async (req, res) => {
-      const { trip, proposal } = store.getProposal(
+      const { trip, proposal } = await store.getProposal(
         routeId(req.params.tripId),
         routeId(req.params.proposalId),
       );

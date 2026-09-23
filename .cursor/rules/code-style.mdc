@@ -10,7 +10,7 @@ Four rules. If a shorter version is clear on the first read, use that.
 
 ## TypeScript
 
-Product types come from `shared/domain.ts`. A category is `CategoryId`, not `string`. HTTP and JSON input stays `unknown` until `validate.ts` accepts it. No `any`. No `as`, except the boundary that reads `store.json`.
+Product types come from `shared/domain.ts`. A category is `CategoryId`, not `string`. HTTP and JSON input stays `unknown` until `validate.ts` accepts it. No `any`. No `as`.
 
 ## Functions
 

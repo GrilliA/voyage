@@ -1,28 +1,29 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
 import http from "node:http";
-import os from "node:os";
-import path from "node:path";
 import test from "node:test";
-import type { AddressInfo } from "node:net";
 import type { CategoryId, ProposalDetail, TripDetail, TripSummary } from "../../shared/domain.ts";
 import { createApp } from "./app.ts";
+import { defaultDatabaseUrl, ensureDatabase, openDatabase, testDatabaseUrl } from "./data/db.ts";
+import { createStore, deleteAllTrips } from "./data/store.ts";
 
 async function withApi(run: (base: string) => Promise<void>) {
-  const directory = await mkdtemp(path.join(os.tmpdir(), "voyage-"));
-  const app = createApp({ storePath: path.join(directory, "store.json") });
+  await ensureDatabase(defaultDatabaseUrl, "voyage_test");
+  const { database, close } = await openDatabase(
+    process.env.TEST_DATABASE_URL ?? testDatabaseUrl,
+  );
+  await deleteAllTrips(database);
+  const app = createApp(createStore(database));
   const server = http.createServer(app);
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const address = server.address();
-  if (address == null || typeof address === "string") throw new Error("Porta non assegnata.");
-  const { port } = address as AddressInfo;
+  if (address == null || typeof address === "string") throw new Error("No port assigned.");
 
   try {
-    await run(`http://127.0.0.1:${port}`);
+    await run(`http://127.0.0.1:${address.port}`);
   } finally {
     server.closeAllConnections?.();
     await new Promise<void>((resolve) => server.close(() => resolve()));
-    await rm(directory, { recursive: true, force: true });
+    await close();
   }
 }
 

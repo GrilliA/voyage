@@ -24,16 +24,17 @@ Visible copy is Italian. Files, types, and functions stay English.
 
 - `shared/domain.ts` is the contract: categories, totals, and response shapes. Express and Vue import these types.
 - `be/src/domain/` calculates and validates. `calc.ts` builds totals. `present.ts` builds the cards. `validate.ts` checks input from outside.
-- `be/src/data/store.ts` is the only place that writes `be/data/store.json`.
+- `be/src/data/schema.ts` is the Postgres schema. `store.ts` reads and writes trips, proposals, and cost lines through Drizzle.
 - `fe/src/views/` holds the three screens: `TripsView.vue`, `TripView.vue`, `ProposalView.vue`.
 
 ## Commands
 
 ```bash
-cd be && npm run dev      # API at http://127.0.0.1:3001
+docker compose up -d     # Postgres at 127.0.0.1:5433
+cd be && npm run dev     # API at http://127.0.0.1:3001
 cd be && npm test
 cd be && npm run typecheck
-cd fe && npm run dev      # UI at http://127.0.0.1:5173
+cd fe && npm run dev     # UI at http://127.0.0.1:5173
 cd fe && npm run typecheck
 ```
 

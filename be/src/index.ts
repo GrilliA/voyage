@@ -1,10 +1,10 @@
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { createApp } from "./app.ts";
+import { databaseUrlFromEnv, openDatabase } from "./data/db.ts";
+import { createStore } from "./data/store.ts";
 
-const storePath = path.join(path.dirname(fileURLToPath(import.meta.url)), "../data/store.json");
+const { database } = await openDatabase(databaseUrlFromEnv());
 const port = Number(process.env.PORT) || 3001;
 
-createApp({ storePath }).listen(port, "127.0.0.1", () => {
+createApp(createStore(database)).listen(port, "127.0.0.1", () => {
   console.log(`Voyage API on http://127.0.0.1:${port}`);
 });

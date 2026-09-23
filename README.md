@@ -6,6 +6,12 @@ The backend and the UI are TypeScript. The shared contract lives in `shared/doma
 
 ## Run
 
+Start Postgres:
+
+```bash
+docker compose up -d
+```
+
 Terminal 1, API:
 
 ```bash
@@ -24,4 +30,4 @@ npm run dev
 
 Open http://127.0.0.1:5173
 
-Data stays in `be/data/store.json` on this computer. API tests: `cd be && npm test`.
+Postgres runs in Docker on port `5433` (user `voyage`, password `voyage`, database `voyage`). API tests use `voyage_test` on that same server: `cd be && npm test`.

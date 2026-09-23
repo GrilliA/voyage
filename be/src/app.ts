@@ -1,13 +1,12 @@
 import express, { type Express, type NextFunction, type Request, type Response } from "express";
-import { createStore } from "./data/store.ts";
+import type { Store } from "./data/store.ts";
 import { createTripsRouter } from "./routes/trips.ts";
 
 function isJsonSyntaxError(error: unknown): error is SyntaxError {
   return error instanceof SyntaxError && "status" in error && error.status === 400;
 }
 
-export function createApp({ storePath }: { storePath: string }): Express {
-  const store = createStore(storePath);
+export function createApp(store: Store): Express {
   const app = express();
 
   app.use(express.json({ limit: "1mb" }));

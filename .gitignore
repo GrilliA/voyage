@@ -1,6 +1,5 @@
 node_modules/
 dist/
 be/data/store.json
-be/data/*.tmp
 .DS_Store
 .codex/
