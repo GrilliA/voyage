@@ -15,6 +15,13 @@
       "when": 1790170075029,
       "tag": "0001_big_groot",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790175870351,
+      "tag": "0002_rapid_dorian_gray",
+      "breakpoints": true
     }
   ]
 }

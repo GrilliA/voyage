@@ -34,6 +34,7 @@ export function presentProposal(trip: Trip, proposal: Proposal): ProposalDetail 
       label: line.label,
       amount: line.amount,
       flight: line.flight,
+      stay: line.stay,
     })),
     sections: CATEGORIES,
   };

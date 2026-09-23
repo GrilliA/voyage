@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from "vue";
-import { flightTotal, type FlightDetails, type PriceBasis } from "../../../shared/domain";
+import { totalForBasis, type FlightDetails, type PriceBasis } from "../../../shared/domain";
 import { formatMoney, formatPeople } from "../format";
 
 const props = withDefaults(
@@ -41,7 +41,7 @@ const preview = computed(() => {
   if (form.price === "") return "";
   const price = Number(form.price);
   if (!Number.isFinite(price) || price < 0) return "";
-  const total = flightTotal(price, form.basis, props.people);
+  const total = totalForBasis(price, form.basis, props.people);
   if (form.basis === "persona") {
     return `${formatMoney(price)} × ${formatPeople(props.people)} = ${formatMoney(total)} nel totale`;
   }

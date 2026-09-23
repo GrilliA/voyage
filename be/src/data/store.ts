@@ -1,11 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import {
-  flightTotal,
   isCategoryId,
+  totalForBasis,
   type CategoryId,
   type FlightDetails,
   type PriceBasis,
+  type StayDetails,
 } from "../../../shared/domain.ts";
 import { toCents } from "../domain/calc.ts";
 import {
@@ -16,6 +17,7 @@ import {
   money,
   optionalDate,
   people,
+  stayInput,
   title,
 } from "../domain/validate.ts";
 import { NotFound } from "../errors.ts";
@@ -28,6 +30,7 @@ export type StoredLine = {
   label: string;
   amount: number;
   flight: FlightDetails | null;
+  stay: StayDetails | null;
 };
 
 export type Proposal = {
@@ -98,26 +101,65 @@ function assembleFlight(lineRow: CostLineRow): FlightDetails | null {
 function flightRecord(flight: FlightDetails, peopleCount: number) {
   return {
     label: `${flight.outboundFrom} → ${flight.outboundTo} · ${flight.returnFrom} → ${flight.returnTo}`,
-    amountCents: centsFromEuros(money(flightTotal(flight.price, flight.basis, peopleCount))),
+    amountCents: centsFromEuros(money(totalForBasis(flight.price, flight.basis, peopleCount))),
     priceBasis: flight.basis,
     priceCents: centsFromEuros(flight.price),
     outboundFrom: flight.outboundFrom,
     outboundTo: flight.outboundTo,
     returnFrom: flight.returnFrom,
     returnTo: flight.returnTo,
+    checkIn: null,
+    checkOut: null,
   };
 }
 
-const blankFlight = {
+function assembleStay(lineRow: CostLineRow): StayDetails | null {
+  if (lineRow.category !== "alloggio") return null;
+  if (
+    lineRow.priceBasis == null ||
+    lineRow.priceCents == null ||
+    lineRow.checkIn == null ||
+    lineRow.checkOut == null
+  ) {
+    return null;
+  }
+
+  return {
+    basis: storedBasis(lineRow.priceBasis),
+    price: eurosFromCents(lineRow.priceCents),
+    place: lineRow.label,
+    checkIn: lineRow.checkIn,
+    checkOut: lineRow.checkOut,
+  };
+}
+
+function stayRecord(stay: StayDetails, peopleCount: number) {
+  return {
+    label: stay.place,
+    amountCents: centsFromEuros(money(totalForBasis(stay.price, stay.basis, peopleCount))),
+    priceBasis: stay.basis,
+    priceCents: centsFromEuros(stay.price),
+    outboundFrom: null,
+    outboundTo: null,
+    returnFrom: null,
+    returnTo: null,
+    checkIn: stay.checkIn,
+    checkOut: stay.checkOut,
+  };
+}
+
+const blankDetails = {
   priceBasis: null,
   priceCents: null,
   outboundFrom: null,
   outboundTo: null,
   returnFrom: null,
   returnTo: null,
+  checkIn: null,
+  checkOut: null,
 };
 
-async function personFlightRows(database: AppDatabase, tripId: string) {
+async function personPricedRows(database: AppDatabase, tripId: string) {
   const proposalRows = await database
     .select({ id: proposals.id })
     .from(proposals)
@@ -140,6 +182,7 @@ function assembleProposal(proposalRow: ProposalRow, lineRows: CostLineRow[]): Pr
       label: lineRow.label,
       amount: eurosFromCents(lineRow.amountCents),
       flight: assembleFlight(lineRow),
+      stay: assembleStay(lineRow),
     }));
 
   return {
@@ -244,14 +287,14 @@ export function createStore(database: AppDatabase) {
       const endDate = "endDate" in input ? optionalDate(input.endDate, "Il ritorno") : existing.endDate;
       assertDateOrder(startDate, endDate);
       const nextPeople = "people" in input ? people(input.people) : existing.people;
-      const pricedPerPerson = nextPeople === existing.people ? [] : await personFlightRows(database, tripId);
-      const scaledFlights = pricedPerPerson.flatMap((lineRow) => {
+      const pricedPerPerson = nextPeople === existing.people ? [] : await personPricedRows(database, tripId);
+      const scaledAmounts = pricedPerPerson.flatMap((lineRow) => {
         if (lineRow.priceCents == null) return [];
         return [
           {
             id: lineRow.id,
             amountCents: centsFromEuros(
-              money(flightTotal(eurosFromCents(lineRow.priceCents), "persona", nextPeople)),
+              money(totalForBasis(eurosFromCents(lineRow.priceCents), "persona", nextPeople)),
             ),
           },
         ];
@@ -267,7 +310,7 @@ export function createStore(database: AppDatabase) {
         })
         .where(eq(trips.id, tripId));
 
-      for (const scaled of scaledFlights) {
+      for (const scaled of scaledAmounts) {
         await database
           .update(costLines)
           .set({ amountCents: scaled.amountCents })
@@ -339,7 +382,12 @@ export function createStore(database: AppDatabase) {
 
       const lineCategory = category(input.category);
       const flight = lineCategory === "voli" && "price" in input ? flightInput(input) : null;
-      const recorded = flight ? flightRecord(flight, existing.people) : null;
+      const stay = lineCategory === "alloggio" && "checkIn" in input ? stayInput(input) : null;
+      const recorded = flight
+        ? flightRecord(flight, existing.people)
+        : stay
+          ? stayRecord(stay, existing.people)
+          : null;
 
       await database.insert(costLines).values({
         id: randomUUID(),
@@ -353,6 +401,8 @@ export function createStore(database: AppDatabase) {
         outboundTo: recorded?.outboundTo ?? null,
         returnFrom: recorded?.returnFrom ?? null,
         returnTo: recorded?.returnTo ?? null,
+        checkIn: recorded?.checkIn ?? null,
+        checkOut: recorded?.checkOut ?? null,
         createdAt: new Date(),
       });
 
@@ -372,7 +422,12 @@ export function createStore(database: AppDatabase) {
       if (!line) throw new NotFound("Voce non trovata.");
 
       const flight = line.category === "voli" && "price" in input ? flightInput(input) : null;
-      const recorded = flight ? flightRecord(flight, existing.people) : null;
+      const stay = line.category === "alloggio" && "checkIn" in input ? stayInput(input) : null;
+      const recorded = flight
+        ? flightRecord(flight, existing.people)
+        : stay
+          ? stayRecord(stay, existing.people)
+          : null;
 
       await database
         .update(costLines)
@@ -382,7 +437,7 @@ export function createStore(database: AppDatabase) {
             : {
                 label: description(input.label),
                 amountCents: centsFromEuros(money(input.amount)),
-                ...blankFlight,
+                ...blankDetails,
               },
         )
         .where(eq(costLines.id, lineId));

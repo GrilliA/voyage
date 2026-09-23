@@ -375,7 +375,8 @@ input[type="number"]::-webkit-inner-spin-button {
   gap: 8px;
 }
 
-.flight-form {
+.flight-form,
+.stay-form {
   display: grid;
   gap: 16px;
   margin-top: 22px;
@@ -384,7 +385,21 @@ input[type="number"]::-webkit-inner-spin-button {
   border-radius: 18px;
 }
 
-.lines .flight-form { margin-top: 0; }
+.lines .flight-form,
+.lines .stay-form { margin-top: 0; }
+
+.stay-pace {
+  margin: 8px 0 0;
+  color: var(--muted);
+}
+
+.stay-notes {
+  margin: 16px 0 0;
+  padding-left: 1.1rem;
+  color: var(--muted);
+}
+
+.stay-notes li + li { margin-top: 4px; }
 
 .basis {
   display: grid;
