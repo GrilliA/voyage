@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { averagePerNight, findStayIssues } from "../../../shared/domain";
 import { api, errorMessage } from "../api/client";
-import type { CostLine, FlightDetails, ProposalDetail, StepId } from "../api/types";
+import type { CostLine, FlightDetails, ProposalDetail, StayDetails, StepId } from "../api/types";
 import FlightForm from "../components/FlightForm.vue";
-import { formatMoney, formatPeople, routeParam } from "../format";
+import StayForm from "../components/StayForm.vue";
+import { formatMoney, formatNights, formatPeople, formatRange, formatStayIssue, formatStayNightLine, routeParam } from "../format";
 
 type EditorStep = {
   id: StepId;
@@ -30,7 +32,9 @@ const current = ref<StepId>("persone");
 const confirmingDelete = ref(false);
 const saving = ref(false);
 const editingFlightId = ref<string | null>(null);
+const editingStayId = ref<string | null>(null);
 const newFlightKey = ref(0);
+const newStayKey = ref(0);
 const draft = reactive({ label: "", amount: "" });
 
 const tripId = computed(() => routeParam(route.params.tripId));
@@ -43,6 +47,31 @@ const nextStep = computed(() => steps.value[stepIndex.value + 1] ?? null);
 const currentLines = computed(() =>
   (proposal.value?.lines ?? []).filter((line) => line.category === current.value),
 );
+const staySuggestion = computed(() => {
+  const trip = proposal.value?.trip;
+  const stays = (proposal.value?.lines ?? [])
+    .flatMap((line) => (line.stay ? [line.stay] : []))
+    .sort((left, right) => left.checkOut.localeCompare(right.checkOut));
+  const last = stays[stays.length - 1];
+  if (!last) return { checkIn: trip?.startDate ?? "", checkOut: trip?.endDate ?? "" };
+  const end = trip?.endDate ?? "";
+  return { checkIn: last.checkOut, checkOut: end > last.checkOut ? end : "" };
+});
+const lodgingPace = computed(() => {
+  if (current.value !== "alloggio") return null;
+  const lines = currentLines.value;
+  if (lines.length === 0 || lines.some((line) => line.stay == null)) return null;
+  return averagePerNight(
+    lines.flatMap((line) =>
+      line.stay ? [{ amount: line.amount, checkIn: line.stay.checkIn, checkOut: line.stay.checkOut }] : [],
+    ),
+  );
+});
+const lodgingNotes = computed(() => {
+  if (current.value !== "alloggio" || proposal.value == null) return [];
+  const stays = currentLines.value.flatMap((line) => (line.stay ? [line.stay] : []));
+  return findStayIssues(stays, proposal.value.trip.startDate, proposal.value.trip.endDate).map(formatStayIssue);
+});
 
 function sectionAmount(stepId: StepId): number {
   if (stepId === "persone" || proposal.value == null) return 0;
@@ -136,6 +165,34 @@ async function updateFlight(line: CostLine, flight: FlightDetails) {
   }
 }
 
+async function addStay(stay: StayDetails) {
+  if (current.value !== "alloggio") return;
+  actionError.value = "";
+  saving.value = true;
+  try {
+    proposal.value = await api.addLine(tripId.value, proposalId.value, { category: "alloggio", ...stay });
+    newStayKey.value += 1;
+    editingStayId.value = null;
+  } catch (caught) {
+    actionError.value = errorMessage(caught);
+  } finally {
+    saving.value = false;
+  }
+}
+
+async function updateStay(line: CostLine, stay: StayDetails) {
+  actionError.value = "";
+  saving.value = true;
+  try {
+    proposal.value = await api.updateLine(tripId.value, proposalId.value, line.id, stay);
+    editingStayId.value = null;
+  } catch (caught) {
+    actionError.value = errorMessage(caught);
+  } finally {
+    saving.value = false;
+  }
+}
+
 async function addLine() {
   actionError.value = "";
   const label = draft.label.trim();
@@ -209,6 +266,7 @@ watch(
     current.value = "persone";
     confirmingDelete.value = false;
     editingFlightId.value = null;
+    editingStayId.value = null;
     load();
   },
   { immediate: true },
@@ -271,6 +329,9 @@ watch(
           <p v-if="currentStep.id !== 'persone'" class="section-subtotal">
             {{ formatMoney(sectionAmount(currentStep.id)) }}
           </p>
+          <p v-if="lodgingPace" class="stay-pace">
+            {{ formatNights(lodgingPace.nights) }} · {{ formatMoney(lodgingPace.perNight) }} a notte
+          </p>
 
           <div v-if="currentStep.id === 'persone'" class="people-field">
             <label class="field">
@@ -281,8 +342,38 @@ watch(
           <template v-else>
             <ul v-if="currentLines.length" class="lines">
               <li v-for="line in currentLines" :key="line.id">
+                <StayForm
+                  v-if="line.stay && editingStayId === line.id"
+                  :people="proposal.trip.people"
+                  :saving="saving"
+                  :stay="line.stay"
+                  submit-label="Salva"
+                  show-cancel
+                  @submit="updateStay(line, $event)"
+                  @cancel="editingStayId = null"
+                />
+                <article v-else-if="line.stay" class="flight">
+                  <div class="flight-routes">
+                    <p><span>Luogo</span> {{ line.stay.place }}</p>
+                    <p><span>Date</span> {{ formatRange(line.stay.checkIn, line.stay.checkOut) }}</p>
+                  </div>
+                  <div class="flight-foot">
+                    <p class="flight-price">
+                      <template v-if="line.stay.basis === 'persona'">
+                        {{ formatMoney(line.stay.price) }} a persona
+                        <small>{{ formatMoney(line.amount) }} nel totale</small>
+                      </template>
+                      <template v-else>{{ formatMoney(line.amount) }} totale</template>
+                      <small>{{ formatStayNightLine(line.amount, line.stay.checkIn, line.stay.checkOut) }}</small>
+                    </p>
+                    <span class="actions">
+                      <button class="button ghost" type="button" @click="editingStayId = line.id">Modifica</button>
+                      <button class="icon-button" type="button" aria-label="Rimuovi soggiorno" @click="removeLine(line)">×</button>
+                    </span>
+                  </div>
+                </article>
                 <FlightForm
-                  v-if="line.flight && editingFlightId === line.id"
+                  v-else-if="line.flight && editingFlightId === line.id"
                   :people="proposal.trip.people"
                   :saving="saving"
                   :flight="line.flight"
@@ -324,6 +415,9 @@ watch(
                 </div>
               </li>
             </ul>
+            <ul v-if="lodgingNotes.length" class="stay-notes">
+              <li v-for="note in lodgingNotes" :key="note">{{ note }}</li>
+            </ul>
             <FlightForm
               v-if="currentStep.id === 'voli'"
               :key="newFlightKey"
@@ -332,6 +426,16 @@ watch(
               submit-label="Aggiungi volo"
               suggest-return
               @submit="addFlight"
+            />
+            <StayForm
+              v-else-if="currentStep.id === 'alloggio'"
+              :key="newStayKey"
+              :people="proposal.trip.people"
+              :saving="saving"
+              submit-label="Aggiungi soggiorno"
+              :suggest-check-in="staySuggestion.checkIn"
+              :suggest-check-out="staySuggestion.checkOut"
+              @submit="addStay"
             />
             <form v-else class="add-line" @submit.prevent="addLine">
               <input v-model="draft.label" type="text" maxlength="120" placeholder="Descrizione" aria-label="Nuova descrizione" />

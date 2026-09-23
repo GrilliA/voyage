@@ -1,8 +1,10 @@
 import {
   isCategoryId,
+  isIsoDate,
   type CategoryId,
   type FlightDetails,
   type PriceBasis,
+  type StayDetails,
 } from "../../../shared/domain.ts";
 import { BadInput } from "../errors.ts";
 import { toCents } from "./calc.ts";
@@ -25,19 +27,16 @@ export function people(value: unknown): number {
 
 export function optionalDate(value: unknown, label: string): string {
   if (value == null || value === "") return "";
-  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    throw new BadInput(`${label} non è una data valida.`);
-  }
-  const [year, month, day] = value.split("-").map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day));
-  const real =
-    date.getUTCFullYear() === year &&
-    date.getUTCMonth() === month - 1 &&
-    date.getUTCDate() === day;
-  if (!real || year == null || month == null || day == null) {
+  if (typeof value !== "string" || !isIsoDate(value)) {
     throw new BadInput(`${label} non è una data valida.`);
   }
   return value;
+}
+
+export function requiredDate(value: unknown, label: string): string {
+  const date = optionalDate(value, label);
+  if (!date) throw new BadInput(`${label} è obbligatoria.`);
+  return date;
 }
 
 export function assertDateOrder(startDate: string, endDate: string): void {
@@ -75,6 +74,28 @@ export function priceBasis(value: unknown): PriceBasis {
     throw new BadInput("Scegli se il prezzo è totale o a persona.");
   }
   return value;
+}
+
+function stayPlace(value: unknown): string {
+  if (typeof value !== "string" || !value.trim()) {
+    throw new BadInput("Il luogo è obbligatorio.");
+  }
+  const trimmed = value.trim();
+  if (trimmed.length > 80) throw new BadInput("Il luogo è troppo lungo.");
+  return trimmed;
+}
+
+export function stayInput(input: Record<string, unknown>): StayDetails {
+  const checkIn = requiredDate(input.checkIn, "La data di arrivo");
+  const checkOut = requiredDate(input.checkOut, "La data di uscita");
+  if (checkOut <= checkIn) throw new BadInput("Il soggiorno deve durare almeno una notte.");
+  return {
+    basis: priceBasis(input.basis),
+    price: money(input.price),
+    place: stayPlace(input.place),
+    checkIn,
+    checkOut,
+  };
 }
 
 export function flightInput(input: Record<string, unknown>): FlightDetails {

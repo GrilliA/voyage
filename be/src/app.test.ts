@@ -210,3 +210,95 @@ test("a flight stores the route and multiplies a per-person price", async () => 
     assert.equal(again.data?.totals.total, 680);
   });
 });
+
+test("a stay stores the dates and multiplies a per-person price", async () => {
+  await withApi(async (base) => {
+    const created = await api<TripDetail>(base, "/api/trips", {
+      method: "POST",
+      body: { title: "Ecuador", startDate: "2026-03-24", endDate: "2026-04-07", people: 2 },
+    });
+    assert.equal(created.status, 201);
+    assert.ok(created.data);
+    const tripId = created.data.id;
+
+    const proposal = await api<ProposalDetail>(base, `/api/trips/${tripId}/proposals`, {
+      method: "POST",
+      body: { title: "Via Quito" },
+    });
+    assert.ok(proposal.data);
+
+    const quito = await api<ProposalDetail>(base, `/api/trips/${tripId}/proposals/${proposal.data.id}/lines`, {
+      method: "POST",
+      body: {
+        category: "alloggio",
+        basis: "totale",
+        price: 1200,
+        place: "Quito",
+        checkIn: "2026-03-24",
+        checkOut: "2026-04-05",
+      },
+    });
+    assert.equal(quito.status, 201);
+    const quitoStay = quito.data?.lines[0];
+    assert.ok(quitoStay);
+    assert.equal(quitoStay.amount, 1200);
+    assert.equal(quitoStay.label, "Quito");
+    assert.equal(quitoStay.stay?.basis, "totale");
+    assert.equal(quitoStay.stay?.price, 1200);
+    assert.equal(quitoStay.stay?.checkIn, "2026-03-24");
+    assert.equal(quitoStay.stay?.checkOut, "2026-04-05");
+    assert.equal(quitoStay.flight, null);
+
+    const banos = await api<ProposalDetail>(base, `/api/trips/${tripId}/proposals/${proposal.data.id}/lines`, {
+      method: "POST",
+      body: {
+        category: "alloggio",
+        basis: "persona",
+        price: 40,
+        place: "Baños",
+        checkIn: "2026-04-05",
+        checkOut: "2026-04-07",
+      },
+    });
+    assert.equal(banos.status, 201);
+    const banosStay = banos.data?.lines[1];
+    assert.ok(banosStay);
+    assert.equal(banosStay.amount, 80);
+    assert.equal(banosStay.stay?.basis, "persona");
+    assert.equal(banosStay.stay?.price, 40);
+    assert.equal(banos.data?.totals.byCategory.alloggio, 1280);
+
+    const plain = await api<ProposalDetail>(base, `/api/trips/${tripId}/proposals/${proposal.data.id}/lines`, {
+      method: "POST",
+      body: { category: "alloggio", label: "Hotel Quito", amount: 50 },
+    });
+    assert.equal(plain.status, 201);
+    assert.equal(plain.data?.lines[2]?.stay, null);
+
+    const tooShort = await api(base, `/api/trips/${tripId}/proposals/${proposal.data.id}/lines`, {
+      method: "POST",
+      body: {
+        category: "alloggio",
+        basis: "totale",
+        price: 10,
+        place: "Quito",
+        checkIn: "2026-04-05",
+        checkOut: "2026-04-05",
+      },
+    });
+    assert.equal(tooShort.status, 400);
+
+    const resized = await api<TripDetail>(base, `/api/trips/${tripId}`, {
+      method: "PATCH",
+      body: { people: 4 },
+    });
+    assert.equal(resized.status, 200);
+
+    const again = await api<ProposalDetail>(base, `/api/trips/${tripId}/proposals/${proposal.data.id}`);
+    const scaled = again.data?.lines.find((line) => line.stay?.basis === "persona");
+    const unchanged = again.data?.lines.find((line) => line.stay?.place === "Quito");
+    assert.equal(scaled?.amount, 160);
+    assert.equal(scaled?.stay?.price, 40);
+    assert.equal(unchanged?.amount, 1200);
+  });
+});

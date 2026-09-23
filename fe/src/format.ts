@@ -1,3 +1,5 @@
+import { countNights, splitMoney, type StayIssue } from "../../shared/domain";
+
 const STRIPS = ["#145c4a", "#b85a32", "#1f4e79", "#6e4b2a", "#3f6b5a"] as const;
 
 const moneyFormat = new Intl.NumberFormat("it-IT", {
@@ -12,6 +14,24 @@ export function formatMoney(value: number | null | undefined): string {
 
 export function formatPeople(count: number): string {
   return `${count} ${count === 1 ? "persona" : "persone"}`;
+}
+
+export function formatNights(count: number): string {
+  return `${count} ${count === 1 ? "notte" : "notti"}`;
+}
+
+export function formatStayNightLine(amount: number, checkIn: string, checkOut: string): string {
+  const nights = countNights(checkIn, checkOut);
+  if (nights == null) return "";
+  const perNight = splitMoney(amount, nights);
+  if (perNight == null) return formatNights(nights);
+  return `${formatNights(nights)} · ${formatMoney(perNight)} a notte`;
+}
+
+export function formatStayIssue(issue: StayIssue): string {
+  if (issue.kind === "overlap") return `${issue.first} e ${issue.second} coprono la stessa notte.`;
+  if (issue.kind === "outside") return `${issue.place} esce dalle date del viaggio.`;
+  return `Manca l'alloggio: ${formatRange(issue.checkIn, issue.checkOut)}.`;
 }
 
 export function formatProposals(count: number): string {

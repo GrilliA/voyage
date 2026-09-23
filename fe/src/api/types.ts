@@ -4,6 +4,7 @@ export type {
   CostLine,
   FlightDetails,
   MoneyTotals,
+  StayDetails,
   PriceBasis,
   ProposalDetail,
   ProposalSummary,
