@@ -5,8 +5,8 @@ import {
   type TripDetail,
   type TripSummary,
 } from "../../../shared/domain.ts";
-import { proposalTotals } from "./calc.ts";
-import type { Proposal, Trip } from "../data/store.ts";
+import { proposalTotals } from "./money.ts";
+import type { Proposal, Trip } from "./trip.ts";
 
 function presentCard(proposal: Proposal, peopleCount: number): Omit<ProposalSummary, "cheapest"> {
   return {
@@ -41,22 +41,20 @@ export function presentProposal(trip: Trip, proposal: Proposal): ProposalDetail 
 }
 
 export function presentTripDetail(trip: Trip): TripDetail {
-  const proposals: ProposalSummary[] = trip.proposals
+  const cards = trip.proposals
     .slice()
-    .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
-    .map((proposal) => ({ ...presentCard(proposal, trip.people), cheapest: false }));
+    .sort((left, right) => left.createdAt.localeCompare(right.createdAt))
+    .map((proposal) => presentCard(proposal, trip.people));
 
-  const priced = proposals.filter((proposal) => proposal.priced);
+  const priced = cards.filter((proposal) => proposal.priced);
   const lowestTotal = priced.length
     ? Math.min(...priced.map((proposal) => proposal.totals.total))
     : null;
-
-  if (priced.length >= 2 && lowestTotal != null) {
-    for (const proposal of proposals) {
-      proposal.cheapest = proposal.priced && proposal.totals.total === lowestTotal;
-    }
-  }
-
+  const markCheapest = priced.length >= 2 && lowestTotal != null;
+  const proposals: ProposalSummary[] = cards.map((proposal) => ({
+    ...proposal,
+    cheapest: markCheapest && proposal.priced && proposal.totals.total === lowestTotal,
+  }));
   const lowest = priced.find((proposal) => proposal.totals.total === lowestTotal) ?? null;
 
   return {

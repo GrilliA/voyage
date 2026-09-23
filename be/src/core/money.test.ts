@@ -6,7 +6,7 @@ import {
   findStayIssues,
   totalForBasis,
 } from "../../../shared/domain.ts";
-import { proposalTotals } from "./calc.ts";
+import { proposalTotals } from "./money.ts";
 
 test("sums categories and divides the total by people", () => {
   const totals = proposalTotals(

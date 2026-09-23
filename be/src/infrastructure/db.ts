@@ -15,10 +15,6 @@ const migrationsFolder = path.join(
   "../../drizzle",
 );
 
-export function databaseUrlFromEnv(): string {
-  return process.env.DATABASE_URL ?? defaultDatabaseUrl;
-}
-
 export async function openDatabase(connectionString: string): Promise<{
   database: AppDatabase;
   close: () => Promise<void>;
