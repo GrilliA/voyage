@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, watch } from "vue";
+import { onMounted, onUnmounted, ref, useId, watch } from "vue";
 import type { TripInput } from "../api/types";
 import AppButton from "./buttons/AppButton.vue";
 import DateInput from "./form/DateInput.vue";
@@ -7,58 +7,76 @@ import FormField from "./form/FormField.vue";
 import NumberInput from "./form/NumberInput.vue";
 import TextInput from "./form/TextInput.vue";
 
-const props = withDefaults(
-  defineProps<{
-    heading: string;
-    submitLabel: string;
-    initial: TripInput;
-    saving?: boolean;
-    error?: string;
-  }>(),
-  { saving: false, error: "" },
-);
+type TripForm = {
+  title: string;
+  startDate: string;
+  endDate: string;
+  people: number | string;
+};
+
+const props = defineProps<{
+  heading: string;
+  submitLabel: string;
+  initial: TripInput;
+  saving: boolean;
+  error: string | null;
+}>();
 
 const emit = defineEmits<{
   close: [];
   submit: [payload: TripInput];
 }>();
 
-const form = reactive<TripInput>({
-  title: "",
-  startDate: "",
-  endDate: "",
-  people: 2,
-});
+const headingId = useId();
+
+function tripForm(input: TripInput): TripForm {
+  return {
+    title: input.title,
+    startDate: input.startDate,
+    endDate: input.endDate,
+    people: String(input.people),
+  };
+}
+
+const form = ref<TripForm>(tripForm(props.initial));
 
 watch(
   () => props.initial,
   (initial) => {
-    form.title = initial.title;
-    form.startDate = initial.startDate;
-    form.endDate = initial.endDate;
-    form.people = initial.people;
+    form.value = tripForm(initial);
   },
-  { immediate: true },
 );
 
 function close() {
   if (!props.saving) emit("close");
 }
 
+function onKeydown(event: KeyboardEvent) {
+  if (event.key === "Escape") close();
+}
+
 function submit() {
   emit("submit", {
-    title: form.title,
-    startDate: form.startDate,
-    endDate: form.endDate,
-    people: Number(form.people),
+    title: form.value.title,
+    startDate: form.value.startDate,
+    endDate: form.value.endDate,
+    people: Number(form.value.people),
   });
 }
+
+onMounted(() => {
+  document.addEventListener("keydown", onKeydown);
+});
+
+onUnmounted(() => {
+  document.removeEventListener("keydown", onKeydown);
+});
 </script>
 
 <template>
-  <div class="modal-back" @click.self="close" @keydown.esc="close">
-    <form class="modal" @submit.prevent="submit">
-      <h2>{{ heading }}</h2>
+  <div class="modal-back" @click.self="close">
+    <form class="modal" role="dialog" aria-modal="true" :aria-labelledby="headingId" @submit.prevent="submit">
+      <h2 :id="headingId">{{ heading }}</h2>
       <p v-if="error" class="banner" role="alert">{{ error }}</p>
       <FormField label="Nome del viaggio">
         <TextInput v-model="form.title" maxlength="80" required autofocus />
@@ -86,28 +104,50 @@ function submit() {
 .modal-back {
   position: fixed;
   inset: 0;
-  display: grid;
-  place-items: center;
-  padding: var(--space-6);
+  display: flex;
+  overflow: auto;
+  padding: var(--size-gutter);
   background: var(--color-overlay);
 }
 
 .modal {
   display: grid;
   gap: var(--space-4);
-  width: min(460px, 100%);
-  padding: var(--space-7);
+  width: 100%;
+  margin: auto;
+  padding: var(--space-6) var(--space-4) calc(var(--space-6) + env(safe-area-inset-bottom, 0px));
   border-radius: var(--radius-xl);
   background: var(--color-card);
 }
 
 .modal .banner { margin: 0; }
 
-.split { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+.split {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-3);
+}
 
-.modal-actions { display: flex; justify-content: flex-end; gap: var(--space-3); margin-top: var(--space-1); }
+.modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-1);
+}
 
-@media (max-width: 900px) {
-  .split { grid-template-columns: 1fr; }
+@media (min-width: 40rem) {
+  .modal-back { padding: var(--space-6); }
+
+  .modal {
+    width: min(var(--size-modal), 100%);
+    padding: var(--space-7);
+  }
+
+  .split { grid-template-columns: 1fr 1fr; }
+
+  .modal-actions {
+    flex-direction: row;
+    justify-content: flex-end;
+  }
 }
 </style>

@@ -24,11 +24,11 @@ defineProps<{ legend: string }>();
 
 .columns {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: var(--space-3);
 }
 
-@media (max-width: 900px) {
-  .columns { grid-template-columns: 1fr; }
+@media (min-width: 40rem) {
+  .columns { grid-template-columns: 1fr 1fr; }
 }
 </style>

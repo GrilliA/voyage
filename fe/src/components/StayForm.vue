@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import {
   countNights,
   splitMoney,
@@ -8,6 +8,7 @@ import {
   type StayDetails,
 } from "../../../shared/domain";
 import { formatMoney, formatNights, formatPeople } from "../format";
+import { readNumber } from "../readNumber";
 import AppButton from "./buttons/AppButton.vue";
 import BasisToggle from "./form/BasisToggle.vue";
 import DateInput from "./form/DateInput.vue";
@@ -17,17 +18,26 @@ import FormPanel from "./form/FormPanel.vue";
 import NumberInput from "./form/NumberInput.vue";
 import TextInput from "./form/TextInput.vue";
 
+type StayFormState = {
+  basis: PriceBasis;
+  price: number | string;
+  place: string;
+  checkIn: string;
+  checkOut: string;
+  link: string;
+};
+
 const props = withDefaults(
   defineProps<{
     people: number;
-    saving?: boolean;
+    saving: boolean;
     submitLabel: string;
-    stay?: StayDetails | null;
+    stay: StayDetails | null;
     suggestCheckIn?: string;
     suggestCheckOut?: string;
     showCancel?: boolean;
   }>(),
-  { saving: false, stay: null, suggestCheckIn: "", suggestCheckOut: "", showCancel: false },
+  { suggestCheckIn: "", suggestCheckOut: "", showCancel: false },
 );
 
 const emit = defineEmits<{
@@ -35,112 +45,124 @@ const emit = defineEmits<{
   cancel: [];
 }>();
 
-const error = ref("");
-const form = reactive<{
-  basis: PriceBasis;
-  price: string;
-  place: string;
-  checkIn: string;
-  checkOut: string;
-  link: string;
-}>({
-  basis: "totale",
-  price: "",
-  place: "",
-  checkIn: "",
-  checkOut: "",
-  link: "",
-});
+const error = ref<string | null>(null);
+
+function stayForm(stay: StayDetails | null): StayFormState {
+  if (stay === null) {
+    return {
+      basis: "totale",
+      price: "",
+      place: "",
+      checkIn: props.suggestCheckIn,
+      checkOut: props.suggestCheckOut,
+      link: "",
+    };
+  }
+  return {
+    basis: stay.basis,
+    price: String(stay.price),
+    place: stay.place,
+    checkIn: stay.checkIn,
+    checkOut: stay.checkOut,
+    link: stay.link,
+  };
+}
+
+const form = ref<StayFormState>(stayForm(props.stay));
 
 const preview = computed(() => {
-  if (form.price === "") return "";
-  const price = Number(form.price);
-  if (!Number.isFinite(price) || price < 0) return "";
-  const total = totalForBasis(price, form.basis, props.people);
-  const nights = countNights(form.checkIn, form.checkOut);
-  const nightly = nights == null ? null : splitMoney(total, nights);
-  const nightlyPerson = nights == null ? null : splitMoney(total, nights * props.people);
+  const price = readNumber(form.value.price);
+  if (price === null || price < 0) return "";
+  const total = totalForBasis(price, form.value.basis, props.people);
+  const nights = countNights(form.value.checkIn, form.value.checkOut);
+  const nightly = nights === null ? null : splitMoney(total, nights);
+  const nightlyPerson = nights === null ? null : splitMoney(total, nights * props.people);
 
-  if (form.basis === "persona") {
+  if (form.value.basis === "persona") {
     const peoplePart = `${formatMoney(price)} × ${formatPeople(props.people)} = ${formatMoney(total)} nel totale`;
-    if (nights == null || nightlyPerson == null) return peoplePart;
+    if (nights === null || nightlyPerson === null) return peoplePart;
     return `${formatNights(nights)} · ${peoplePart} · ${formatMoney(nightlyPerson)} a notte a persona`;
   }
 
-  if (nights == null || nightly == null) return `${formatMoney(total)} nel totale`;
+  if (nights === null || nightly === null) return `${formatMoney(total)} nel totale`;
   return `${formatNights(nights)} · ${formatMoney(nightly)} a notte · ${formatMoney(total)} nel totale`;
 });
 
 watch(
   () => props.stay,
   (stay) => {
-    form.basis = stay?.basis ?? "totale";
-    form.price = stay ? String(stay.price) : "";
-    form.place = stay?.place ?? "";
-    form.checkIn = stay?.checkIn ?? props.suggestCheckIn;
-    form.checkOut = stay?.checkOut ?? props.suggestCheckOut;
-    form.link = stay?.link ?? "";
-    error.value = "";
+    form.value = stayForm(stay);
+    error.value = null;
   },
-  { immediate: true },
 );
 
 watch(
-  () => [props.suggestCheckIn, props.suggestCheckOut] as const,
-  ([checkIn, checkOut], previous) => {
-    if (props.stay || previous == null) return;
-    const [previousCheckIn, previousCheckOut] = previous;
-    if (form.checkIn === previousCheckIn && form.checkOut === previousCheckOut) {
-      form.checkIn = checkIn;
-      form.checkOut = checkOut;
-    }
+  () => [props.suggestCheckIn, props.suggestCheckOut],
+  (next, previous) => {
+    if (props.stay !== null) return;
+    const nextCheckIn = pairAt(next, 0);
+    const nextCheckOut = pairAt(next, 1);
+    const previousCheckIn = pairAt(previous, 0);
+    const previousCheckOut = pairAt(previous, 1);
+    if (form.value.checkIn !== previousCheckIn || form.value.checkOut !== previousCheckOut) return;
+    if (form.value.checkIn !== nextCheckIn) form.value.checkIn = nextCheckIn;
+    if (form.value.checkOut !== nextCheckOut) form.value.checkOut = nextCheckOut;
   },
 );
 
+function isHttpLink(link: string): boolean {
+  try {
+    const url = new URL(link);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function pairAt(pair: readonly string[] | undefined, index: number): string {
+  if (pair === undefined) return "";
+  const value = pair[index];
+  if (value === undefined) return "";
+  return value;
+}
+
 function submit() {
-  const place = form.place.trim();
-  const price = Number(form.price);
+  const place = form.value.place.trim();
+  const price = readNumber(form.value.price);
 
   if (!place) {
     error.value = "Il luogo è obbligatorio.";
     return;
   }
-  if (!form.checkIn) {
+  if (!form.value.checkIn) {
     error.value = "La data di arrivo è obbligatoria.";
     return;
   }
-  if (!form.checkOut) {
+  if (!form.value.checkOut) {
     error.value = "La data di uscita è obbligatoria.";
     return;
   }
-  if (form.checkOut <= form.checkIn) {
+  if (form.value.checkOut <= form.value.checkIn) {
     error.value = "Il soggiorno deve durare almeno una notte.";
     return;
   }
-  if (form.price === "" || !Number.isFinite(price) || price < 0) {
+  if (price === null || price < 0) {
     error.value = "L'importo non è valido.";
     return;
   }
-  const link = form.link.trim();
-  if (link) {
-    try {
-      const url = new URL(link);
-      if (url.protocol !== "http:" && url.protocol !== "https:") {
-        throw new Error("Invalid protocol.");
-      }
-    } catch {
-      error.value = "Il link non è valido.";
-      return;
-    }
+  const link = form.value.link.trim();
+  if (link && !isHttpLink(link)) {
+    error.value = "Il link non è valido.";
+    return;
   }
 
-  error.value = "";
+  error.value = null;
   emit("submit", {
-    basis: form.basis,
+    basis: form.value.basis,
     price,
     place,
-    checkIn: form.checkIn,
-    checkOut: form.checkOut,
+    checkIn: form.value.checkIn,
+    checkOut: form.value.checkOut,
     link,
   });
 }
@@ -163,12 +185,12 @@ function submit() {
         <DateInput v-model="form.checkIn" required />
       </FormField>
       <FormField label="Al">
-        <DateInput v-model="form.checkOut" :min="form.checkIn || undefined" required />
+        <DateInput v-model="form.checkOut" :min="form.checkIn" required />
       </FormField>
     </FieldGroup>
 
     <FormField :label="form.basis === 'persona' ? 'Prezzo a persona' : 'Prezzo totale'">
-      <NumberInput v-model="form.price" min="0" step="0.01" inputmode="decimal" required />
+      <NumberInput v-model="form.price" min="0" step="0.01" required />
     </FormField>
     <p v-if="preview" class="preview">{{ preview }}</p>
     <p v-if="error" class="banner" role="alert">{{ error }}</p>
@@ -182,7 +204,7 @@ function submit() {
 
 <style scoped>
 .preview {
-  margin: calc(-1 * var(--space-2)) 0 0;
+  margin: 0;
   color: var(--color-muted);
 }
 

@@ -5,38 +5,46 @@
   background: var(--color-paper);
 }
 
+html { text-size-adjust: 100%; }
+
 * { box-sizing: border-box; }
 
 body {
   margin: 0;
-  min-height: 100vh;
+  min-height: 100dvh;
   background:
-    radial-gradient(900px 420px at 0% -10%, var(--color-accent-glow), transparent 55%),
+    radial-gradient(56rem 26rem at 0% -10%, var(--color-accent-glow), transparent 55%),
     var(--color-paper);
 }
 
 button, input { font: inherit; color: inherit; }
 button { cursor: pointer; }
+input { accent-color: var(--color-accent); }
 
 h1, h2 {
   font-family: var(--font-serif);
   font-weight: 560;
-  letter-spacing: -0.03em;
+  letter-spacing: var(--tracking-tight);
+  overflow-wrap: break-word;
 }
 
 h1 {
   margin: 0;
-  font-size: clamp(2.4rem, 5vw, 3.6rem);
-  line-height: 0.95;
+  font-size: var(--text-display);
+  line-height: var(--leading-tight);
 }
 
-h2 { margin: 0; font-size: 1.7rem; }
+h2 {
+  margin: 0;
+  font-size: var(--text-2xl);
+  line-height: var(--leading-tight);
+}
 
 a:focus-visible,
 button:focus-visible,
 input:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 3px;
+  outline: var(--focus-ring) solid var(--color-accent);
+  outline-offset: var(--focus-ring);
 }
 
 .kicker {
@@ -60,7 +68,7 @@ input:focus-visible {
 .lede {
   margin: var(--space-2) 0 0;
   color: var(--color-muted);
-  line-height: 1.45;
+  line-height: var(--leading-body);
 }
 
 .meta { margin: var(--space-2) 0 0; color: var(--color-muted); }
@@ -72,7 +80,9 @@ input:focus-visible {
 
 .back {
   display: inline-flex;
-  margin-bottom: var(--space-4);
+  align-items: center;
+  min-height: var(--size-control);
+  margin-bottom: var(--space-2);
   color: var(--color-muted);
   text-decoration: none;
 }
@@ -89,15 +99,28 @@ input:focus-visible {
 
 .banner.quiet {
   display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-3);
-  align-items: center;
   background: var(--color-sunken);
   color: var(--color-ink);
 }
 
 .actions {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-3);
   align-items: center;
+}
+
+@media (min-width: 56rem) {
+  .banner.quiet {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { scroll-behavior: auto; }
 }

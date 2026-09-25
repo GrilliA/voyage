@@ -7,7 +7,7 @@ withDefaults(
     type?: "button" | "submit";
     to?: RouteLocationRaw;
   }>(),
-  { variant: "primary", type: "button", to: undefined },
+  { variant: "primary", type: "button" },
 );
 </script>
 
@@ -21,11 +21,13 @@ withDefaults(
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid transparent;
+  min-height: var(--size-control);
+  border: var(--border-width) solid transparent;
   border-radius: var(--radius-pill);
   padding: var(--space-3) var(--space-5);
   background: var(--color-accent);
   color: var(--color-on-accent);
+  font-size: var(--text-md);
   font-weight: 600;
   text-decoration: none;
 }

@@ -15,7 +15,7 @@
   display: grid;
   gap: var(--space-3);
   padding: var(--space-4);
-  border: 1px solid var(--color-line);
+  border: var(--border-width) solid var(--color-line);
   border-radius: var(--radius-lg);
 }
 
@@ -23,8 +23,8 @@
 
 .foot {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
   gap: var(--space-3);
 }
 
@@ -32,12 +32,23 @@
 
 .price :slotted(small) {
   display: block;
-  margin-top: 2px;
+  margin-top: var(--space-1);
   color: var(--color-muted);
   font-size: var(--text-sm);
 }
 
-@media (max-width: 900px) {
-  .foot { align-items: flex-start; flex-direction: column; }
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+@media (min-width: 40rem) {
+  .foot {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
 }
 </style>

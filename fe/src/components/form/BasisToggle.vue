@@ -37,6 +37,7 @@ const basis = defineModel<PriceBasis>({ required: true });
 }
 
 .basis button {
+  min-height: var(--size-control);
   border: 0;
   border-radius: var(--radius-sm);
   padding: var(--space-3);
