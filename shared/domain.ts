@@ -135,6 +135,7 @@ export type StayDetails = {
   place: string;
   checkIn: string;
   checkOut: string;
+  link: string;
 };
 
 function nightsBetween(checkIn: string, checkOut: string): string[] {

@@ -1,0 +1,51 @@
+:root {
+  --color-ink: #1c1915;
+  --color-muted: #6f675e;
+  --color-line: #e4ddd2;
+  --color-paper: #ebe4d8;
+  --color-card: #fffdf9;
+  --color-field: #fff;
+  --color-field-border: #ddd4c8;
+  --color-dashed: #c9bfb2;
+  --color-sunken: #f3efe7;
+  --color-step: #e7e0d4;
+  --color-accent: #145c4a;
+  --color-accent-soft: #e5f3ee;
+  --color-accent-glow: rgba(20, 92, 74, 0.12);
+  --color-on-accent: #f7f4ee;
+  --color-on-dark-muted: #c9c0b4;
+  --color-danger: #8a3a24;
+  --color-danger-soft: #f8e8e2;
+  --color-danger-ink: #6e2e1c;
+  --color-danger-line: #e4cdc4;
+  --color-overlay: rgba(28, 24, 20, 0.38);
+  --color-card-border: rgba(28, 24, 20, 0.08);
+
+  --font-serif: "Fraunces", "Iowan Old Style", Palatino, Georgia, serif;
+  --font-sans: "Outfit", "Avenir Next", "Segoe UI", sans-serif;
+
+  --radius-sm: 12px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius-pill: 999px;
+
+  --shadow-card: 0 16px 40px rgba(70, 48, 20, 0.06);
+  --shadow-raised: 0 8px 20px rgba(60, 40, 20, 0.06);
+  --shadow-soft: 0 4px 12px rgba(60, 40, 20, 0.06);
+  --shadow-cheapest: 0 16px 32px rgba(20, 92, 74, 0.14);
+
+  --text-xs: 0.78rem;
+  --text-sm: 0.9rem;
+  --tracking-wide: 0.12em;
+  --tracking-wider: 0.16em;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 40px;
+}

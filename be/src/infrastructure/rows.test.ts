@@ -43,6 +43,7 @@ test("a stay row keeps the nights and drops the flight", () => {
     place: "Quito",
     checkIn: "2026-03-24",
     checkOut: "2026-04-05",
+    link: "https://www.booking.com/hotel/ec/x.html",
   };
   const columns = lineToColumns({ label: "Quito", amount: 1200, flight: null, stay });
   const line = lineFromRow(row({ category: "alloggio", ...columns }));
@@ -64,6 +65,7 @@ test("a partial flight group is not a flight", () => {
       returnTo: null,
       checkIn: null,
       checkOut: null,
+      link: null,
     }),
   );
   assert.equal(line.flight, null);
@@ -86,6 +88,7 @@ test("an unknown category in the database is a server error", () => {
           returnTo: null,
           checkIn: null,
           checkOut: null,
+          link: null,
         }),
       ),
     /Unknown category/,

@@ -26,6 +26,8 @@ Visible copy is Italian. Files, types, and functions stay English.
 - `shared/codec.ts` reads and writes the camelCase JSON. Zod checks the body on the way in and the cards on the way out. Vue uses the same schemas in `fe/src/api/client.ts`.
 - `be/src/core/` holds the trip, the totals, and the cards. `be/src/business/` is one action per endpoint. `be/src/infrastructure/` is Postgres: the Drizzle schema and the row codec (cents, dates, flight, stay). `be/src/api/` is Express. `be/src/index.ts` opens the database and wires them together.
 - `fe/src/views/` holds the three screens: `TripsView.vue`, `TripView.vue`, `ProposalView.vue`.
+- `fe/src/styles/` holds the global CSS. `tokens.css` is the only place for colors, fonts, radii, shadows, and spacing. `base.css` and `layout.css` hold what several screens share.
+- `fe/src/components/form/`, `buttons/`, and `cards/` hold the base components (inputs, buttons, cards). Each has a `<style scoped>` that uses only tokens. Domain components (`StayForm`, `TripCard`, …) sit in `fe/src/components/` and are built from them.
 
 ## Commands
 

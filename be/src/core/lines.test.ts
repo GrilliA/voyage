@@ -27,6 +27,7 @@ test("a per-person stay total follows the people on the trip", () => {
       place: "Baños",
       checkIn: "2026-04-05",
       checkOut: "2026-04-07",
+      link: "",
     },
     2,
   );

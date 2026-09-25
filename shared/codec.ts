@@ -156,6 +156,24 @@ function readFlight(input: Record<string, unknown>): FlightDetails {
   };
 }
 
+function readStayLink(value: unknown): string {
+  if (value == null || value === "") return "";
+  const invalid = "Il link non è valido.";
+  const parsed = z.string({ error: invalid }).trim().safeParse(value);
+  if (!parsed.success) throw new Error(invalid);
+  const link = parsed.data;
+  if (!link) return "";
+  if (link.length > 2000) throw new Error("Il link è troppo lungo.");
+  let url: URL;
+  try {
+    url = new URL(link);
+  } catch {
+    throw new Error(invalid);
+  }
+  if (url.protocol !== "http:" && url.protocol !== "https:") throw new Error(invalid);
+  return link;
+}
+
 function readStay(input: Record<string, unknown>): StayDetails {
   const checkIn = readRequiredDate(input.checkIn, "La data di arrivo");
   const checkOut = readRequiredDate(input.checkOut, "La data di uscita");
@@ -166,6 +184,7 @@ function readStay(input: Record<string, unknown>): StayDetails {
     place: readStayPlace(input.place),
     checkIn,
     checkOut,
+    link: readStayLink(input.link),
   };
 }
 
@@ -299,6 +318,7 @@ const staySchema = z.object({
   place: z.string(),
   checkIn: z.string(),
   checkOut: z.string(),
+  link: z.string(),
 });
 
 const costLineSchema = z.object({
@@ -386,6 +406,7 @@ function stayFrom(value: z.infer<typeof staySchema>): StayDetails {
     place: value.place,
     checkIn: value.checkIn,
     checkOut: value.checkOut,
+    link: value.link,
   };
 }
 

@@ -22,6 +22,13 @@
       "when": 1790175870351,
       "tag": "0002_rapid_dorian_gray",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790346124828,
+      "tag": "0003_hesitant_karma",
+      "breakpoints": true
     }
   ]
 }

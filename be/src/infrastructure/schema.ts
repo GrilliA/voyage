@@ -34,5 +34,6 @@ export const costLines = pgTable("cost_lines", {
   returnTo: text("return_to"),
   checkIn: text("check_in"),
   checkOut: text("check_out"),
+  link: text("link"),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull(),
 });

@@ -20,6 +20,7 @@ export type LineColumns = {
   returnTo: string | null;
   checkIn: string | null;
   checkOut: string | null;
+  link: string | null;
 };
 
 export type CostLineRow = LineColumns & {
@@ -38,6 +39,7 @@ const blankColumns = {
   returnTo: null,
   checkIn: null,
   checkOut: null,
+  link: null,
 };
 
 export function eurosFromCents(amountCents: number): number {
@@ -99,6 +101,7 @@ function stayFromRow(lineRow: CostLineRow): StayDetails | null {
     place: lineRow.label,
     checkIn: lineRow.checkIn,
     checkOut: lineRow.checkOut,
+    link: lineRow.link ?? "",
   };
 }
 
@@ -126,6 +129,7 @@ export function lineToColumns(line: LineContent): LineColumns {
       returnTo: line.flight.returnTo,
       checkIn: null,
       checkOut: null,
+      link: null,
     };
   }
 
@@ -141,6 +145,7 @@ export function lineToColumns(line: LineContent): LineColumns {
       returnTo: null,
       checkIn: line.stay.checkIn,
       checkOut: line.stay.checkOut,
+      link: line.stay.link || null,
     };
   }
 
