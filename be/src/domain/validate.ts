@@ -85,6 +85,24 @@ function stayPlace(value: unknown): string {
   return trimmed;
 }
 
+function stayLink(value: unknown): string {
+  if (value == null) return "";
+  if (typeof value !== "string") throw new BadInput("Il link non è valido.");
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  if (trimmed.length > 2000) throw new BadInput("Il link è troppo lungo.");
+  try {
+    const url = new URL(trimmed);
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      throw new BadInput("Il link non è valido.");
+    }
+  } catch (error) {
+    if (error instanceof BadInput) throw error;
+    throw new BadInput("Il link non è valido.");
+  }
+  return trimmed;
+}
+
 export function stayInput(input: Record<string, unknown>): StayDetails {
   const checkIn = requiredDate(input.checkIn, "La data di arrivo");
   const checkOut = requiredDate(input.checkOut, "La data di uscita");
@@ -95,6 +113,7 @@ export function stayInput(input: Record<string, unknown>): StayDetails {
     place: stayPlace(input.place),
     checkIn,
     checkOut,
+    link: stayLink(input.link),
   };
 }
 

@@ -1,0 +1,1 @@
+ALTER TABLE "cost_lines" ADD COLUMN "link" text;

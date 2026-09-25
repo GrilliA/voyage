@@ -110,6 +110,7 @@ function flightRecord(flight: FlightDetails, peopleCount: number) {
     returnTo: flight.returnTo,
     checkIn: null,
     checkOut: null,
+    link: null,
   };
 }
 
@@ -130,6 +131,7 @@ function assembleStay(lineRow: CostLineRow): StayDetails | null {
     place: lineRow.label,
     checkIn: lineRow.checkIn,
     checkOut: lineRow.checkOut,
+    link: lineRow.link ?? "",
   };
 }
 
@@ -145,6 +147,7 @@ function stayRecord(stay: StayDetails, peopleCount: number) {
     returnTo: null,
     checkIn: stay.checkIn,
     checkOut: stay.checkOut,
+    link: stay.link || null,
   };
 }
 
@@ -157,6 +160,7 @@ const blankDetails = {
   returnTo: null,
   checkIn: null,
   checkOut: null,
+  link: null,
 };
 
 async function personPricedRows(database: AppDatabase, tripId: string) {
@@ -403,6 +407,7 @@ export function createStore(database: AppDatabase) {
         returnTo: recorded?.returnTo ?? null,
         checkIn: recorded?.checkIn ?? null,
         checkOut: recorded?.checkOut ?? null,
+        link: recorded?.link ?? null,
         createdAt: new Date(),
       });
 

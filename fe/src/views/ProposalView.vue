@@ -356,6 +356,10 @@ watch(
                   <div class="flight-routes">
                     <p><span>Luogo</span> {{ line.stay.place }}</p>
                     <p><span>Date</span> {{ formatRange(line.stay.checkIn, line.stay.checkOut) }}</p>
+                    <p v-if="line.stay.link">
+                      <span>Link</span>
+                      <a :href="line.stay.link" target="_blank" rel="noopener noreferrer">Apri</a>
+                    </p>
                   </div>
                   <div class="flight-foot">
                     <p class="flight-price">

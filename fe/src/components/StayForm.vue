@@ -34,12 +34,14 @@ const form = reactive<{
   place: string;
   checkIn: string;
   checkOut: string;
+  link: string;
 }>({
   basis: "totale",
   price: "",
   place: "",
   checkIn: "",
   checkOut: "",
+  link: "",
 });
 
 const preview = computed(() => {
@@ -69,6 +71,7 @@ watch(
     form.place = stay?.place ?? "";
     form.checkIn = stay?.checkIn ?? props.suggestCheckIn;
     form.checkOut = stay?.checkOut ?? props.suggestCheckOut;
+    form.link = stay?.link ?? "";
     error.value = "";
   },
   { immediate: true },
@@ -110,9 +113,28 @@ function submit() {
     error.value = "L'importo non è valido.";
     return;
   }
+  const link = form.link.trim();
+  if (link) {
+    try {
+      const url = new URL(link);
+      if (url.protocol !== "http:" && url.protocol !== "https:") {
+        throw new Error("Invalid protocol.");
+      }
+    } catch {
+      error.value = "Il link non è valido.";
+      return;
+    }
+  }
 
   error.value = "";
-  emit("submit", { basis: form.basis, price, place, checkIn: form.checkIn, checkOut: form.checkOut });
+  emit("submit", {
+    basis: form.basis,
+    price,
+    place,
+    checkIn: form.checkIn,
+    checkOut: form.checkOut,
+    link,
+  });
 }
 </script>
 
@@ -142,6 +164,11 @@ function submit() {
     <label class="field">
       Luogo
       <input v-model="form.place" type="text" maxlength="80" placeholder="Quito" required />
+    </label>
+
+    <label class="field">
+      Link
+      <input v-model="form.link" type="url" maxlength="2000" placeholder="https://…" />
     </label>
 
     <fieldset class="leg-set">

@@ -302,3 +302,92 @@ test("a stay stores the dates and multiplies a per-person price", async () => {
     assert.equal(unchanged?.amount, 1200);
   });
 });
+
+test("a stay keeps an optional link and rejects invalid urls", async () => {
+  await withApi(async (base) => {
+    const created = await api<TripDetail>(base, "/api/trips", {
+      method: "POST",
+      body: { title: "Ecuador", startDate: "2026-03-24", endDate: "2026-04-07", people: 2 },
+    });
+    assert.equal(created.status, 201);
+    assert.ok(created.data);
+    const tripId = created.data.id;
+
+    const proposal = await api<ProposalDetail>(base, `/api/trips/${tripId}/proposals`, {
+      method: "POST",
+      body: { title: "Via Quito" },
+    });
+    assert.ok(proposal.data);
+    const proposalId = proposal.data.id;
+
+    const linked = await api<ProposalDetail>(base, `/api/trips/${tripId}/proposals/${proposalId}/lines`, {
+      method: "POST",
+      body: {
+        category: "alloggio",
+        basis: "totale",
+        price: 1200,
+        place: "Quito",
+        checkIn: "2026-03-24",
+        checkOut: "2026-04-05",
+        link: "https://www.booking.com/hotel/ec/x.html",
+      },
+    });
+    assert.equal(linked.status, 201);
+    const linkedLine = linked.data?.lines[0];
+    assert.ok(linkedLine);
+    assert.equal(linkedLine.stay?.link, "https://www.booking.com/hotel/ec/x.html");
+
+    const plain = await api<ProposalDetail>(base, `/api/trips/${tripId}/proposals/${proposalId}/lines`, {
+      method: "POST",
+      body: {
+        category: "alloggio",
+        basis: "totale",
+        price: 80,
+        place: "Baños",
+        checkIn: "2026-04-05",
+        checkOut: "2026-04-07",
+      },
+    });
+    assert.equal(plain.status, 201);
+    assert.equal(plain.data?.lines[1]?.stay?.link, "");
+
+    const cleared = await api<ProposalDetail>(
+      base,
+      `/api/trips/${tripId}/proposals/${proposalId}/lines/${linkedLine.id}`,
+      {
+        method: "PATCH",
+        body: {
+          basis: "totale",
+          price: 1200,
+          place: "Quito",
+          checkIn: "2026-03-24",
+          checkOut: "2026-04-05",
+          link: "",
+        },
+      },
+    );
+    assert.equal(cleared.status, 200);
+    assert.equal(cleared.data?.lines[0]?.stay?.link, "");
+
+    for (const link of ["javascript:alert(1)", "not a url"]) {
+      const rejected = await api<{ error: string }>(
+        base,
+        `/api/trips/${tripId}/proposals/${proposalId}/lines`,
+        {
+          method: "POST",
+          body: {
+            category: "alloggio",
+            basis: "totale",
+            price: 10,
+            place: "Quito",
+            checkIn: "2026-03-24",
+            checkOut: "2026-03-25",
+            link,
+          },
+        },
+      );
+      assert.equal(rejected.status, 400);
+      assert.equal(rejected.data?.error, "Il link non è valido.");
+    }
+  });
+});
