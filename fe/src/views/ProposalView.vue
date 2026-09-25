@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { averagePerNight, findStayIssues } from "../../../shared/domain";
 import { api, errorMessage } from "../api/client";
@@ -11,14 +11,21 @@ import IconButton from "../components/buttons/IconButton.vue";
 import CostLineCard from "../components/cards/CostLineCard.vue";
 import CostLineRow from "../components/cards/CostLineRow.vue";
 import FormField from "../components/form/FormField.vue";
+import LineFields from "../components/form/LineFields.vue";
 import NumberInput from "../components/form/NumberInput.vue";
 import TextInput from "../components/form/TextInput.vue";
 import { formatMoney, formatNights, formatPeople, formatRange, formatStayIssue, formatStayNightLine, routeParam } from "../format";
+import { readNumber } from "../readNumber";
 
 type EditorStep = {
   id: StepId;
   label: string;
   hint: string;
+};
+
+type LineDraft = {
+  label: string;
+  amount: number | string;
 };
 
 const PERSONE: EditorStep = {
@@ -31,10 +38,10 @@ const route = useRoute();
 const router = useRouter();
 const proposal = ref<ProposalDetail | null>(null);
 const loading = ref(true);
-const loadError = ref("");
-const actionError = ref("");
+const loadError = ref<string | null>(null);
+const actionError = ref<string | null>(null);
 const title = ref("");
-const people = ref(2);
+const people = ref<number | string>("2");
 const current = ref<StepId>("persone");
 const confirmingDelete = ref(false);
 const saving = ref(false);
@@ -42,47 +49,71 @@ const editingFlightId = ref<string | null>(null);
 const editingStayId = ref<string | null>(null);
 const newFlightKey = ref(0);
 const newStayKey = ref(0);
-const draft = reactive({ label: "", amount: "" });
+const draft = ref<LineDraft>({ label: "", amount: "" });
 
 const tripId = computed(() => routeParam(route.params.tripId));
 const proposalId = computed(() => routeParam(route.params.proposalId));
-const steps = computed<EditorStep[]>(() => [PERSONE, ...(proposal.value?.sections ?? [])]);
-const stepIndex = computed(() => Math.max(steps.value.findIndex((step) => step.id === current.value), 0));
-const currentStep = computed(() => steps.value[stepIndex.value] ?? PERSONE);
-const prevStep = computed(() => steps.value[stepIndex.value - 1] ?? null);
-const nextStep = computed(() => steps.value[stepIndex.value + 1] ?? null);
-const currentLines = computed(() =>
-  (proposal.value?.lines ?? []).filter((line) => line.category === current.value),
-);
+const steps = computed<EditorStep[]>(() => {
+  const detail = proposal.value;
+  if (detail === null) return [PERSONE];
+  return [PERSONE, ...detail.sections];
+});
+const stepIndex = computed(() => {
+  const index = steps.value.findIndex((step) => step.id === current.value);
+  return index < 0 ? 0 : index;
+});
+const currentStep = computed(() => stepAt(stepIndex.value) ?? PERSONE);
+const prevStep = computed(() => stepAt(stepIndex.value - 1));
+const nextStep = computed(() => stepAt(stepIndex.value + 1));
+const currentLines = computed(() => {
+  const detail = proposal.value;
+  if (detail === null) return [];
+  return detail.lines.filter((line) => line.category === current.value);
+});
 const staySuggestion = computed(() => {
-  const trip = proposal.value?.trip;
-  const stays = (proposal.value?.lines ?? [])
-    .flatMap((line) => (line.stay ? [line.stay] : []))
+  const detail = proposal.value;
+  if (detail === null) return { checkIn: "", checkOut: "" };
+  const stays = detail.lines
+    .flatMap((line) => (line.stay === null ? [] : [line.stay]))
     .sort((left, right) => left.checkOut.localeCompare(right.checkOut));
   const last = stays[stays.length - 1];
-  if (!last) return { checkIn: trip?.startDate ?? "", checkOut: trip?.endDate ?? "" };
-  const end = trip?.endDate ?? "";
+  if (last === undefined) return { checkIn: detail.trip.startDate, checkOut: detail.trip.endDate };
+  const end = detail.trip.endDate;
   return { checkIn: last.checkOut, checkOut: end > last.checkOut ? end : "" };
 });
 const lodgingPace = computed(() => {
   if (current.value !== "alloggio") return null;
   const lines = currentLines.value;
-  if (lines.length === 0 || lines.some((line) => line.stay == null)) return null;
+  if (lines.length === 0 || lines.some((line) => line.stay === null)) return null;
   return averagePerNight(
-    lines.flatMap((line) =>
-      line.stay ? [{ amount: line.amount, checkIn: line.stay.checkIn, checkOut: line.stay.checkOut }] : [],
-    ),
+    lines.flatMap((line) => {
+      if (line.stay === null) return [];
+      return [{ amount: line.amount, checkIn: line.stay.checkIn, checkOut: line.stay.checkOut }];
+    }),
   );
 });
 const lodgingNotes = computed(() => {
-  if (current.value !== "alloggio" || proposal.value == null) return [];
-  const stays = currentLines.value.flatMap((line) => (line.stay ? [line.stay] : []));
-  return findStayIssues(stays, proposal.value.trip.startDate, proposal.value.trip.endDate).map(formatStayIssue);
+  const detail = proposal.value;
+  if (current.value !== "alloggio" || detail === null) return [];
+  const stays = currentLines.value.flatMap((line) => (line.stay === null ? [] : [line.stay]));
+  return findStayIssues(stays, detail.trip.startDate, detail.trip.endDate).map(formatStayIssue);
 });
 
+function stepAt(index: number): EditorStep | null {
+  if (index < 0 || index >= steps.value.length) return null;
+  const step = steps.value[index];
+  if (step === undefined) return null;
+  return step;
+}
+
+function showStep(step: EditorStep) {
+  current.value = step.id;
+}
+
 function sectionAmount(stepId: StepId): number {
-  if (stepId === "persone" || proposal.value == null) return 0;
-  return proposal.value.totals.byCategory[stepId];
+  const detail = proposal.value;
+  if (stepId === "persone" || detail === null) return 0;
+  return detail.totals.byCategory[stepId];
 }
 
 function blurOnEnter(event: KeyboardEvent) {
@@ -90,15 +121,15 @@ function blurOnEnter(event: KeyboardEvent) {
 }
 
 async function load() {
-  const first = !proposal.value;
+  const first = proposal.value === null;
   if (first) loading.value = true;
   try {
-    const data = await api.getProposal(tripId.value, proposalId.value);
-    proposal.value = data;
-    title.value = data.title;
-    people.value = data.trip.people;
-    document.title = `${data.title} · ${data.trip.title}`;
-    loadError.value = "";
+    const detail = await api.getProposal(tripId.value, proposalId.value);
+    proposal.value = detail;
+    title.value = detail.title;
+    people.value = String(detail.trip.people);
+    document.title = `${detail.title} · ${detail.trip.title}`;
+    loadError.value = null;
   } catch (caught) {
     if (first) loadError.value = errorMessage(caught);
     else actionError.value = errorMessage(caught);
@@ -109,35 +140,37 @@ async function load() {
 
 async function saveTitle() {
   const next = title.value.trim();
-  if (!proposal.value) return;
-  if (!next || next === proposal.value.title) {
-    title.value = proposal.value.title;
+  const detail = proposal.value;
+  if (detail === null) return;
+  if (!next || next === detail.title) {
+    title.value = detail.title;
     return;
   }
   try {
     proposal.value = await api.updateProposal(tripId.value, proposalId.value, { title: next });
     title.value = proposal.value.title;
     document.title = `${title.value} · ${proposal.value.trip.title}`;
-    actionError.value = "";
+    actionError.value = null;
   } catch (caught) {
     actionError.value = errorMessage(caught);
-    title.value = proposal.value.title;
+    title.value = detail.title;
   }
 }
 
 async function savePeople() {
-  if (!proposal.value) return;
-  const count = Number(people.value);
-  if (!Number.isInteger(count) || count < 1 || count > 99) {
+  const detail = proposal.value;
+  if (detail === null) return;
+  const count = readNumber(people.value);
+  if (count === null || !Number.isInteger(count) || count < 1 || count > 99) {
     actionError.value = "Le persone devono essere un numero da 1 a 99.";
-    people.value = proposal.value.trip.people;
+    people.value = String(detail.trip.people);
     return;
   }
-  if (count === proposal.value.trip.people) return;
+  if (count === detail.trip.people) return;
   try {
     await api.updateTrip(tripId.value, { people: count });
     await load();
-    actionError.value = "";
+    actionError.value = null;
   } catch (caught) {
     actionError.value = errorMessage(caught);
     await load();
@@ -146,7 +179,7 @@ async function savePeople() {
 
 async function addFlight(flight: FlightDetails) {
   if (current.value !== "voli") return;
-  actionError.value = "";
+  actionError.value = null;
   saving.value = true;
   try {
     proposal.value = await api.addLine(tripId.value, proposalId.value, { category: "voli", ...flight });
@@ -160,7 +193,7 @@ async function addFlight(flight: FlightDetails) {
 }
 
 async function updateFlight(line: CostLine, flight: FlightDetails) {
-  actionError.value = "";
+  actionError.value = null;
   saving.value = true;
   try {
     proposal.value = await api.updateLine(tripId.value, proposalId.value, line.id, flight);
@@ -174,7 +207,7 @@ async function updateFlight(line: CostLine, flight: FlightDetails) {
 
 async function addStay(stay: StayDetails) {
   if (current.value !== "alloggio") return;
-  actionError.value = "";
+  actionError.value = null;
   saving.value = true;
   try {
     proposal.value = await api.addLine(tripId.value, proposalId.value, { category: "alloggio", ...stay });
@@ -188,7 +221,7 @@ async function addStay(stay: StayDetails) {
 }
 
 async function updateStay(line: CostLine, stay: StayDetails) {
-  actionError.value = "";
+  actionError.value = null;
   saving.value = true;
   try {
     proposal.value = await api.updateLine(tripId.value, proposalId.value, line.id, stay);
@@ -201,14 +234,14 @@ async function updateStay(line: CostLine, stay: StayDetails) {
 }
 
 async function addLine() {
-  actionError.value = "";
-  const label = draft.label.trim();
-  const amount = Number(draft.amount);
+  actionError.value = null;
+  const label = draft.value.label.trim();
+  const amount = readNumber(draft.value.amount);
   if (!label) {
     actionError.value = "La descrizione è obbligatoria.";
     return;
   }
-  if (draft.amount === "" || !Number.isFinite(amount) || amount < 0) {
+  if (amount === null || amount < 0) {
     actionError.value = "L'importo non è valido.";
     return;
   }
@@ -220,8 +253,7 @@ async function addLine() {
       label,
       amount,
     });
-    draft.label = "";
-    draft.amount = "";
+    draft.value = { label: "", amount: "" };
   } catch (caught) {
     actionError.value = errorMessage(caught);
   } finally {
@@ -229,17 +261,20 @@ async function addLine() {
   }
 }
 
-async function saveLine(line: CostLine) {
-  const label = line.label.trim();
-  const amount = Number(line.amount);
-  if (!label || !Number.isFinite(amount) || amount < 0) {
+async function saveLine(line: CostLine, payload: LineDraft) {
+  const label = payload.label.trim();
+  const amount = readNumber(payload.amount);
+  if (!label || amount === null || amount < 0) {
     actionError.value = "Descrizione e importo non sono validi.";
-    await load();
+    return;
+  }
+  if (label === line.label && amount === line.amount) {
+    actionError.value = null;
     return;
   }
   try {
     proposal.value = await api.updateLine(tripId.value, proposalId.value, line.id, { label, amount });
-    actionError.value = "";
+    actionError.value = null;
   } catch (caught) {
     actionError.value = errorMessage(caught);
     await load();
@@ -249,7 +284,7 @@ async function saveLine(line: CostLine) {
 async function removeLine(line: CostLine) {
   try {
     proposal.value = await api.deleteLine(tripId.value, proposalId.value, line.id);
-    actionError.value = "";
+    actionError.value = null;
   } catch (caught) {
     actionError.value = errorMessage(caught);
   }
@@ -320,7 +355,7 @@ watch(
             class="step"
             :class="{ active: step.id === current }"
             type="button"
-            @click="current = step.id"
+            @click="showStep(step)"
           >
             <span class="step-index">{{ index + 1 }}</span>
             <span>{{ step.label }}</span>
@@ -342,7 +377,7 @@ watch(
 
           <div v-if="currentStep.id === 'persone'" class="people-field">
             <FormField label="Persone">
-              <NumberInput v-model.number="people" min="1" max="99" @change="savePeople" />
+              <NumberInput v-model="people" min="1" max="99" @change="savePeople" />
             </FormField>
           </div>
           <template v-else>
@@ -403,15 +438,8 @@ watch(
                   </template>
                 </CostLineCard>
                 <div v-else class="line">
-                  <TextInput v-model="line.label" aria-label="Descrizione" @blur="saveLine(line)" />
-                  <NumberInput
-                    v-model.number="line.amount"
-                    min="0"
-                    step="0.01"
-                    aria-label="Importo in euro"
-                    @blur="saveLine(line)"
-                  />
-                  <IconButton label="Rimuovi voce" @click="removeLine(line)">×</IconButton>
+                  <LineFields :label="line.label" :amount="line.amount" @save="saveLine(line, $event)" />
+                  <IconButton class="line-remove" label="Rimuovi voce" @click="removeLine(line)">×</IconButton>
                 </div>
               </li>
             </ul>
@@ -424,6 +452,7 @@ watch(
               class="add-form"
               :people="proposal.trip.people"
               :saving="saving"
+              :flight="null"
               submit-label="Aggiungi volo"
               suggest-return
               @submit="addFlight"
@@ -434,6 +463,7 @@ watch(
               class="add-form"
               :people="proposal.trip.people"
               :saving="saving"
+              :stay="null"
               submit-label="Aggiungi soggiorno"
               :suggest-check-in="staySuggestion.checkIn"
               :suggest-check-out="staySuggestion.checkOut"
@@ -441,26 +471,17 @@ watch(
             />
             <form v-else class="add-line" @submit.prevent="addLine">
               <TextInput v-model="draft.label" maxlength="120" placeholder="Descrizione" aria-label="Nuova descrizione" />
-              <NumberInput
-                v-model="draft.amount"
-                min="0"
-                step="0.01"
-                placeholder="Importo"
-                aria-label="Nuovo importo in euro"
-              />
+              <NumberInput v-model="draft.amount" min="0" step="0.01" placeholder="Importo" aria-label="Nuovo importo in euro" />
               <AppButton type="submit" :disabled="saving">Aggiungi</AppButton>
             </form>
           </template>
 
           <div class="stage-nav">
-            <AppButton v-if="prevStep" variant="secondary" @click="current = prevStep.id">
-              Indietro
-            </AppButton>
-            <span v-else></span>
-            <AppButton v-if="nextStep" @click="current = nextStep.id">
+            <AppButton v-if="prevStep" variant="secondary" @click="showStep(prevStep)">Indietro</AppButton>
+            <AppButton v-if="nextStep" class="stage-forward" @click="showStep(nextStep)">
               Continua · {{ nextStep.label }}
             </AppButton>
-            <AppButton v-else :to="{ name: 'trip', params: { tripId } }">
+            <AppButton v-else class="stage-forward" :to="{ name: 'trip', params: { tripId } }">
               Vedi le proposte
             </AppButton>
           </div>
@@ -480,16 +501,17 @@ watch(
 <style scoped>
 .title-input {
   width: 100%;
-  margin: 0 0 var(--space-6);
+  margin: 0 0 var(--space-5);
   padding: 0 0 var(--space-2);
   border: 0;
-  border-bottom: 1px solid transparent;
+  border-bottom: var(--border-width) solid transparent;
   border-radius: 0;
   background: transparent;
   font-family: var(--font-serif);
-  font-size: clamp(2rem, 4vw, 3rem);
+  font-size: var(--text-title);
   font-weight: 560;
-  letter-spacing: -0.03em;
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--leading-tight);
 }
 
 .title-input:hover,
@@ -500,24 +522,36 @@ watch(
 
 .editor {
   display: grid;
-  grid-template-columns: 230px minmax(0, 1fr) 230px;
+  grid-template-columns: 1fr;
   gap: var(--space-5);
   align-items: start;
 }
 
-.steps { display: grid; gap: var(--space-2); }
+.summary { order: -1; }
+
+.steps {
+  display: flex;
+  gap: var(--space-2);
+  max-width: 100%;
+  overflow-x: auto;
+  padding-bottom: var(--space-1);
+  scroll-snap-type: x proximity;
+}
 
 .step {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   gap: var(--space-3);
   align-items: center;
-  width: 100%;
+  flex: 0 0 auto;
+  width: auto;
+  min-height: var(--size-control);
   padding: var(--space-3);
   border: 0;
   border-radius: var(--radius-md);
   background: transparent;
   text-align: left;
+  scroll-snap-align: start;
 }
 
 .step small { color: var(--color-muted); }
@@ -526,8 +560,8 @@ watch(
 .step-index {
   display: grid;
   place-items: center;
-  width: 24px;
-  height: 24px;
+  width: var(--size-step);
+  height: var(--size-step);
   border-radius: var(--radius-pill);
   background: var(--color-step);
   font-size: var(--text-xs);
@@ -538,8 +572,8 @@ watch(
 .stage {
   display: flex;
   flex-direction: column;
-  min-height: 460px;
-  padding: var(--space-7);
+  min-height: 0;
+  padding: var(--space-5);
   border-radius: var(--radius-xl);
   background: var(--color-card);
 }
@@ -547,9 +581,9 @@ watch(
 .section-subtotal {
   margin: var(--space-3) 0 0;
   font-family: var(--font-serif);
-  font-size: 1.4rem;
+  font-size: var(--text-xl);
   font-weight: 560;
-  letter-spacing: -0.03em;
+  letter-spacing: var(--tracking-tight);
 }
 
 .stay-pace {
@@ -557,15 +591,17 @@ watch(
   color: var(--color-muted);
 }
 
-.people-field { max-width: 180px; margin-top: var(--space-6); }
+.people-field { margin-top: var(--space-6); }
 
 .lines { display: grid; gap: var(--space-3); margin: var(--space-6) 0 0; padding: 0; list-style: none; }
 
 .line, .add-line {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 130px auto;
+  grid-template-columns: 1fr;
   gap: var(--space-2);
 }
+
+.line-remove { justify-self: start; }
 
 .add-line { margin-top: var(--space-3); }
 
@@ -573,7 +609,7 @@ watch(
 
 .stay-notes {
   margin: var(--space-4) 0 0;
-  padding-left: 1.1rem;
+  padding-left: var(--space-5);
   color: var(--color-muted);
 }
 
@@ -581,17 +617,16 @@ watch(
 
 .stage-nav {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
   gap: var(--space-3);
   margin-top: auto;
-  padding-top: var(--space-7);
+  padding-top: var(--space-6);
 }
 
 .summary {
-  position: sticky;
-  top: var(--space-6);
-  padding: var(--space-6);
+  position: static;
+  padding: var(--space-5);
   border-radius: var(--radius-xl);
   background: var(--color-ink);
   color: var(--color-on-accent);
@@ -602,25 +637,54 @@ watch(
 .summary-total {
   margin: var(--space-2) 0 0;
   font-family: var(--font-serif);
-  font-size: 2.3rem;
+  font-size: var(--text-4xl);
   font-weight: 560;
-  letter-spacing: -0.03em;
-  line-height: 1;
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--leading-none);
 }
 
-.summary-person { margin: var(--space-3) 0 0; font-size: 1.05rem; }
+.summary-person { margin: var(--space-3) 0 0; font-size: var(--text-md); }
 .summary-note { margin: var(--space-2) 0 0; }
 
-@media (max-width: 900px) {
-  .editor { grid-template-columns: 1fr; }
-  .summary { position: static; order: -1; }
-  .steps {
-    display: flex;
-    gap: var(--space-2);
-    overflow-x: auto;
-    padding-bottom: var(--space-1);
+@media (min-width: 40rem) {
+  .people-field { max-width: var(--size-people); }
+
+  .stage { padding: var(--space-7); }
+
+  .line, .add-line {
+    grid-template-columns: minmax(0, 1fr) var(--size-amount) auto;
+    align-items: center;
   }
-  .step { width: auto; flex: 0 0 auto; }
-  .line, .add-line { grid-template-columns: 1fr; }
+
+  .summary { padding: var(--space-6); }
+
+  .stage-nav {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .stage-forward { margin-left: auto; }
+}
+
+@media (min-width: 56rem) {
+  .editor { grid-template-columns: var(--size-sidebar) minmax(0, 1fr) var(--size-sidebar); }
+
+  .summary {
+    position: sticky;
+    top: var(--space-6);
+    order: 0;
+  }
+
+  .steps {
+    display: grid;
+    overflow: visible;
+    padding-bottom: 0;
+  }
+
+  .step { width: 100%; }
+
+  .stage { min-height: var(--size-stage); }
+
+  .stage-nav { padding-top: var(--space-7); }
 }
 </style>

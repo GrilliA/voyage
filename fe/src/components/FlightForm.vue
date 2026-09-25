@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import { totalForBasis, type FlightDetails, type PriceBasis } from "../../../shared/domain";
 import { formatMoney, formatPeople } from "../format";
+import { readNumber } from "../readNumber";
 import AppButton from "./buttons/AppButton.vue";
 import BasisToggle from "./form/BasisToggle.vue";
 import FieldGroup from "./form/FieldGroup.vue";
@@ -10,16 +11,25 @@ import FormPanel from "./form/FormPanel.vue";
 import NumberInput from "./form/NumberInput.vue";
 import TextInput from "./form/TextInput.vue";
 
+type FlightFormState = {
+  basis: PriceBasis;
+  price: number | string;
+  outboundFrom: string;
+  outboundTo: string;
+  returnFrom: string;
+  returnTo: string;
+};
+
 const props = withDefaults(
   defineProps<{
     people: number;
-    saving?: boolean;
+    saving: boolean;
     submitLabel: string;
-    flight?: FlightDetails | null;
+    flight: FlightDetails | null;
     suggestReturn?: boolean;
     showCancel?: boolean;
   }>(),
-  { saving: false, flight: null, suggestReturn: false, showCancel: false },
+  { suggestReturn: false, showCancel: false },
 );
 
 const emit = defineEmits<{
@@ -27,29 +37,38 @@ const emit = defineEmits<{
   cancel: [];
 }>();
 
-const error = ref("");
-const form = reactive<{
-  basis: PriceBasis;
-  price: string;
-  outboundFrom: string;
-  outboundTo: string;
-  returnFrom: string;
-  returnTo: string;
-}>({
-  basis: "totale",
-  price: "",
-  outboundFrom: "",
-  outboundTo: "",
-  returnFrom: "",
-  returnTo: "",
-});
+const error = ref<string | null>(null);
+
+function emptyFlight(): FlightFormState {
+  return {
+    basis: "totale",
+    price: "",
+    outboundFrom: "",
+    outboundTo: "",
+    returnFrom: "",
+    returnTo: "",
+  };
+}
+
+function flightForm(flight: FlightDetails | null): FlightFormState {
+  if (flight === null) return emptyFlight();
+  return {
+    basis: flight.basis,
+    price: String(flight.price),
+    outboundFrom: flight.outboundFrom,
+    outboundTo: flight.outboundTo,
+    returnFrom: flight.returnFrom,
+    returnTo: flight.returnTo,
+  };
+}
+
+const form = ref<FlightFormState>(flightForm(props.flight));
 
 const preview = computed(() => {
-  if (form.price === "") return "";
-  const price = Number(form.price);
-  if (!Number.isFinite(price) || price < 0) return "";
-  const total = totalForBasis(price, form.basis, props.people);
-  if (form.basis === "persona") {
+  const price = readNumber(form.value.price);
+  if (price === null || price < 0) return "";
+  const total = totalForBasis(price, form.value.basis, props.people);
+  if (form.value.basis === "persona") {
     return `${formatMoney(price)} × ${formatPeople(props.people)} = ${formatMoney(total)} nel totale`;
   }
   return `${formatMoney(total)} nel totale`;
@@ -58,33 +77,27 @@ const preview = computed(() => {
 watch(
   () => props.flight,
   (flight) => {
-    form.basis = flight?.basis ?? "totale";
-    form.price = flight ? String(flight.price) : "";
-    form.outboundFrom = flight?.outboundFrom ?? "";
-    form.outboundTo = flight?.outboundTo ?? "";
-    form.returnFrom = flight?.returnFrom ?? "";
-    form.returnTo = flight?.returnTo ?? "";
-    error.value = "";
+    form.value = flightForm(flight);
+    error.value = null;
   },
-  { immediate: true },
 );
 
 function fillReturnTo() {
-  if (!props.suggestReturn || form.returnTo.trim()) return;
-  form.returnTo = form.outboundFrom.trim();
+  if (!props.suggestReturn || form.value.returnTo.trim()) return;
+  form.value.returnTo = form.value.outboundFrom.trim();
 }
 
 function fillReturnFrom() {
-  if (!props.suggestReturn || form.returnFrom.trim()) return;
-  form.returnFrom = form.outboundTo.trim();
+  if (!props.suggestReturn || form.value.returnFrom.trim()) return;
+  form.value.returnFrom = form.value.outboundTo.trim();
 }
 
 function submit() {
-  const outboundFrom = form.outboundFrom.trim();
-  const outboundTo = form.outboundTo.trim();
-  const returnFrom = form.returnFrom.trim();
-  const returnTo = form.returnTo.trim();
-  const price = Number(form.price);
+  const outboundFrom = form.value.outboundFrom.trim();
+  const outboundTo = form.value.outboundTo.trim();
+  const returnFrom = form.value.returnFrom.trim();
+  const returnTo = form.value.returnTo.trim();
+  const price = readNumber(form.value.price);
 
   if (!outboundFrom) {
     error.value = "La partenza dell'andata è obbligatoria.";
@@ -102,13 +115,13 @@ function submit() {
     error.value = "L'arrivo del ritorno è obbligatorio.";
     return;
   }
-  if (form.price === "" || !Number.isFinite(price) || price < 0) {
+  if (price === null || price < 0) {
     error.value = "L'importo non è valido.";
     return;
   }
 
-  error.value = "";
-  emit("submit", { basis: form.basis, price, outboundFrom, outboundTo, returnFrom, returnTo });
+  error.value = null;
+  emit("submit", { basis: form.value.basis, price, outboundFrom, outboundTo, returnFrom, returnTo });
 }
 </script>
 
@@ -135,7 +148,7 @@ function submit() {
     </FieldGroup>
 
     <FormField :label="form.basis === 'persona' ? 'Prezzo a persona' : 'Prezzo totale'">
-      <NumberInput v-model="form.price" min="0" step="0.01" inputmode="decimal" required />
+      <NumberInput v-model="form.price" min="0" step="0.01" required />
     </FormField>
     <p v-if="preview" class="preview">{{ preview }}</p>
     <p v-if="error" class="banner" role="alert">{{ error }}</p>
@@ -149,7 +162,7 @@ function submit() {
 
 <style scoped>
 .preview {
-  margin: calc(-1 * var(--space-2)) 0 0;
+  margin: 0;
   color: var(--color-muted);
 }
 

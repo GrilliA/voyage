@@ -1,14 +1,20 @@
 import { countNights, splitMoney, type StayIssue } from "../../shared/domain";
 
-const STRIPS = ["#145c4a", "#b85a32", "#1f4e79", "#6e4b2a", "#3f6b5a"] as const;
+const STRIPS = [
+  "var(--color-strip-1)",
+  "var(--color-strip-2)",
+  "var(--color-strip-3)",
+  "var(--color-strip-4)",
+  "var(--color-strip-5)",
+];
 
 const moneyFormat = new Intl.NumberFormat("it-IT", {
   style: "currency",
   currency: "EUR",
 });
 
-export function formatMoney(value: number | null | undefined): string {
-  if (value == null || Number.isNaN(value)) return "—";
+export function formatMoney(value: number | null): string {
+  if (value === null || Number.isNaN(value)) return "—";
   return moneyFormat.format(value);
 }
 
@@ -22,9 +28,9 @@ export function formatNights(count: number): string {
 
 export function formatStayNightLine(amount: number, checkIn: string, checkOut: string): string {
   const nights = countNights(checkIn, checkOut);
-  if (nights == null) return "";
+  if (nights === null) return "";
   const perNight = splitMoney(amount, nights);
-  if (perNight == null) return formatNights(nights);
+  if (perNight === null) return formatNights(nights);
   return `${formatNights(nights)} · ${formatMoney(perNight)} a notte`;
 }
 
@@ -38,9 +44,14 @@ export function formatProposals(count: number): string {
   return `${count} ${count === 1 ? "proposta" : "proposte"}`;
 }
 
-function parseISODate(iso: string): Date {
-  const [year, month, day] = iso.split("-").map(Number);
-  return new Date(year ?? 0, (month ?? 1) - 1, day ?? 1);
+function parseISODate(iso: string): Date | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (match === null) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) return null;
+  return new Date(year, month - 1, day);
 }
 
 export function formatRange(start: string, end: string): string {
@@ -72,11 +83,14 @@ export function formatRange(start: string, end: string): string {
 export function stripColor(title: string): string {
   let hash = 0;
   for (const char of title) hash = (hash + char.charCodeAt(0) * 17) % STRIPS.length;
-  return STRIPS[hash] ?? STRIPS[0];
+  const color = STRIPS[hash];
+  if (color === undefined) return "var(--color-strip-1)";
+  return color;
 }
 
-export function routeParam(value: string | string[] | undefined): string {
+export function routeParam(value: string | readonly string[]): string {
   if (typeof value === "string") return value;
-  if (Array.isArray(value) && typeof value[0] === "string") return value[0];
-  return "";
+  const first = value[0];
+  if (first === undefined) return "";
+  return first;
 }

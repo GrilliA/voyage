@@ -15,7 +15,7 @@ defineProps<{
     <p class="meta">{{ formatRange(trip.startDate, trip.endDate) }}</p>
     <p class="meta">{{ formatPeople(trip.people) }} · {{ formatProposals(trip.proposalCount) }}</p>
     <div class="price-block">
-      <template v-if="trip.lowestTotal != null">
+      <template v-if="trip.lowestTotal !== null">
         <p class="price-kicker">da</p>
         <p class="price">{{ formatMoney(trip.lowestTotal) }}</p>
         <p class="per-person">{{ formatMoney(trip.lowestPerPerson) }} a persona</p>
@@ -29,11 +29,9 @@ defineProps<{
 
 <style scoped>
 .card-strip {
-  width: 56px;
-  height: 8px;
+  width: var(--size-strip);
+  height: var(--size-strip-bar);
   margin-bottom: var(--space-5);
   border-radius: var(--radius-pill);
 }
-
-h2 { font-size: 1.85rem; }
 </style>

@@ -15,21 +15,25 @@ const route = useRoute();
 const router = useRouter();
 const trip = ref<TripDetail | null>(null);
 const loading = ref(true);
-const error = ref("");
-const formError = ref("");
+const error = ref<string | null>(null);
+const formError = ref<string | null>(null);
 const saving = ref(false);
 const editing = ref(false);
 const confirmingDelete = ref(false);
 const composing = ref(false);
 const proposalTitle = ref("");
-const proposalError = ref("");
+const proposalError = ref<string | null>(null);
 const draft = ref<TripInput>({ title: "", startDate: "", endDate: "", people: 2 });
 
-const accent = computed(() => stripColor(trip.value?.title ?? ""));
+const accent = computed(() => {
+  const current = trip.value;
+  if (current === null) return stripColor("");
+  return stripColor(current.title);
+});
 
 async function load() {
   loading.value = true;
-  error.value = "";
+  error.value = null;
   trip.value = null;
   try {
     trip.value = await api.getTrip(routeParam(route.params.tripId));
@@ -50,14 +54,14 @@ function openEdit() {
     endDate: trip.value.endDate,
     people: trip.value.people,
   };
-  formError.value = "";
+  formError.value = null;
   editing.value = true;
 }
 
 async function saveTrip(payload: TripInput) {
   if (!trip.value) return;
   saving.value = true;
-  formError.value = "";
+  formError.value = null;
   try {
     trip.value = await api.updateTrip(trip.value.id, payload);
     editing.value = false;
@@ -83,7 +87,7 @@ async function removeTrip() {
 
 async function createProposal() {
   if (!trip.value) return;
-  proposalError.value = "";
+  proposalError.value = null;
   const title = proposalTitle.value.trim();
   if (!title) {
     proposalError.value = "Il titolo è obbligatorio.";
@@ -148,7 +152,7 @@ watch(() => route.params.tripId, () => void load(), { immediate: true });
           :to="{ name: 'proposal', params: { tripId: trip.id, proposalId: proposal.id } }"
         />
 
-        <AppCard v-if="!composing" as="button" variant="add" @click="composing = true">
+        <AppCard v-if="!composing" tag="button" variant="add" @click="composing = true">
           <strong class="add-title">Nuova proposta</strong>
           <span class="add-hint">Una scheda da compilare e confrontare</span>
         </AppCard>
@@ -181,7 +185,7 @@ watch(() => route.params.tripId, () => void load(), { immediate: true });
 </template>
 
 <style scoped>
-.add-title { font-size: 1.2rem; }
+.add-title { font-size: var(--text-lg); }
 .add-hint { color: var(--color-muted); }
 
 .new-proposal { display: grid; gap: var(--space-4); }

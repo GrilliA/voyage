@@ -20,32 +20,73 @@
   --color-danger-line: #e4cdc4;
   --color-overlay: rgba(28, 24, 20, 0.38);
   --color-card-border: rgba(28, 24, 20, 0.08);
+  --color-strip-1: #145c4a;
+  --color-strip-2: #b85a32;
+  --color-strip-3: #1f4e79;
+  --color-strip-4: #6e4b2a;
+  --color-strip-5: #3f6b5a;
 
   --font-serif: "Fraunces", "Iowan Old Style", Palatino, Georgia, serif;
   --font-sans: "Outfit", "Avenir Next", "Segoe UI", sans-serif;
 
-  --radius-sm: 12px;
-  --radius-md: 14px;
-  --radius-lg: 18px;
-  --radius-xl: 24px;
-  --radius-pill: 999px;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.5rem;
+  --text-2xl: 1.75rem;
+  --text-3xl: 2rem;
+  --text-4xl: 2.25rem;
+  --text-display: clamp(2.4rem, 1.6rem + 2.5vw, 3.6rem);
+  --text-title: clamp(2rem, 1.25rem + 2.2vw, 3rem);
 
-  --shadow-card: 0 16px 40px rgba(70, 48, 20, 0.06);
-  --shadow-raised: 0 8px 20px rgba(60, 40, 20, 0.06);
-  --shadow-soft: 0 4px 12px rgba(60, 40, 20, 0.06);
-  --shadow-cheapest: 0 16px 32px rgba(20, 92, 74, 0.14);
+  --leading-tight: 1.05;
+  --leading-body: 1.45;
+  --leading-none: 1;
 
-  --text-xs: 0.78rem;
-  --text-sm: 0.9rem;
+  --tracking-tight: -0.03em;
+  --tracking-snug: 0.04em;
   --tracking-wide: 0.12em;
   --tracking-wider: 0.16em;
 
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 20px;
-  --space-6: 24px;
-  --space-7: 28px;
-  --space-8: 40px;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-7: 1.75rem;
+  --space-8: 2.5rem;
+  --space-page: 5rem;
+
+  --radius-sm: 0.75rem;
+  --radius-md: 0.875rem;
+  --radius-lg: 1.125rem;
+  --radius-xl: 1.5rem;
+  --radius-pill: 62.5rem;
+
+  --shadow-card: 0 1rem 2.5rem rgba(70, 48, 20, 0.06);
+  --shadow-raised: 0 0.5rem 1.25rem rgba(60, 40, 20, 0.06);
+  --shadow-soft: 0 0.25rem 0.75rem rgba(60, 40, 20, 0.06);
+  --shadow-cheapest: 0 1rem 2rem rgba(20, 92, 74, 0.14);
+
+  --border-width: 1px;
+  --border-mark: 0.25rem;
+  --focus-ring: 0.125rem;
+
+  --size-page: 70rem;
+  --size-gutter: 1rem;
+  --size-gutter-wide: 1.5rem;
+  --size-card: 16rem;
+  --size-card-block: 15.5rem;
+  --size-sidebar: 14.5rem;
+  --size-amount: 8rem;
+  --size-modal: 28.75rem;
+  --size-stage: 28rem;
+  --size-people: 11.25rem;
+  --size-control: 2.75rem;
+  --size-step: 1.5rem;
+  --size-strip: 3.5rem;
+  --size-strip-bar: 0.5rem;
+  --size-label: 4.5rem;
 }
