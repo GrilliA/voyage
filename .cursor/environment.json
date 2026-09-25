@@ -1,0 +1,16 @@
+{
+  "name": "Voyage",
+  "user": "ubuntu",
+  "install": "bash .cursor/install.sh",
+  "start": "bash .cursor/start.sh",
+  "terminals": [
+    {
+      "name": "API",
+      "command": "export NODE_OPTIONS=\"--experimental-strip-types --disable-warning=ExperimentalWarning\"; cd be && npm run dev"
+    },
+    {
+      "name": "UI",
+      "command": "cd fe && npm run dev"
+    }
+  ]
+}
