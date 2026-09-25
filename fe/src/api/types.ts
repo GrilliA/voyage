@@ -11,5 +11,6 @@ export type {
   StepId,
   TripDetail,
   TripInput,
+  TripPatch,
   TripSummary,
 } from "../../../shared/domain.ts";

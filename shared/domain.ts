@@ -83,6 +83,11 @@ function signedCents(price: number): number {
   return price < 0 ? -cents : cents;
 }
 
+export function toCents(value: unknown): number | null {
+  if (typeof value !== "number" || !Number.isFinite(value)) return null;
+  return signedCents(value);
+}
+
 export function totalForBasis(price: number, basis: PriceBasis, peopleCount: number): number {
   const cents = signedCents(price);
   const totalCents = basis === "persona" ? cents * peopleCount : cents;
@@ -238,5 +243,22 @@ export type TripInput = {
   endDate: string;
   people: number;
 };
+
+export type TripPatch = {
+  title?: string;
+  startDate?: string;
+  endDate?: string;
+  people?: number;
+};
+
+export type LineCreate =
+  | { kind: "flight"; flight: FlightDetails }
+  | { kind: "stay"; stay: StayDetails }
+  | { kind: "plain"; category: CategoryId; label: string; amount: number };
+
+export type LineUpdate =
+  | { kind: "flight"; flight: FlightDetails }
+  | { kind: "stay"; stay: StayDetails }
+  | { kind: "plain"; label: string; amount: number };
 
 export type StepId = "persone" | CategoryId;

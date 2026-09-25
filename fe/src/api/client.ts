@@ -1,3 +1,14 @@
+import {
+  decodeProposalDetail,
+  decodeTripDetail,
+  decodeTripSummaries,
+  encodeLineCreate,
+  encodeLineUpdate,
+  encodeProposalCreate,
+  encodeProposalPatch,
+  encodeTripCreate,
+  encodeTripPatch,
+} from "../../../shared/codec.ts";
 import type {
   CategoryId,
   FlightDetails,
@@ -5,6 +16,7 @@ import type {
   StayDetails,
   TripDetail,
   TripInput,
+  TripPatch,
   TripSummary,
 } from "./types.ts";
 
@@ -18,7 +30,14 @@ export function errorMessage(caught: unknown): string {
   return "Qualcosa non ha funzionato.";
 }
 
-async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+function errorText(value: unknown): string {
+  if (typeof value === "object" && value !== null && "error" in value && typeof value.error === "string") {
+    return value.error;
+  }
+  return "Qualcosa non ha funzionato.";
+}
+
+async function request(path: string, options: RequestOptions = {}): Promise<unknown> {
   let response: Response;
   try {
     response = await fetch(path, {
@@ -30,16 +49,10 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     throw new Error("Il server non risponde.");
   }
 
-  if (response.status === 204) return undefined as T;
+  if (response.status === 204) return undefined;
   const data: unknown = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const message =
-      typeof data === "object" && data !== null && "error" in data && typeof data.error === "string"
-        ? data.error
-        : "Qualcosa non ha funzionato.";
-    throw new Error(message);
-  }
-  return data as T;
+  if (!response.ok) throw new Error(errorText(data));
+  return data;
 }
 
 export type LineInput = {
@@ -62,40 +75,56 @@ export type LinePatch = {
 };
 
 export const api = {
-  listTrips: () => request<TripSummary[]>("/api/trips"),
-  createTrip: (body: TripInput) => request<TripDetail>("/api/trips", { method: "POST", body }),
-  getTrip: (id: string) => request<TripDetail>(`/api/trips/${id}`),
-  updateTrip: (id: string, body: Partial<TripInput>) =>
-    request<TripDetail>(`/api/trips/${id}`, { method: "PATCH", body }),
-  deleteTrip: (id: string) => request<void>(`/api/trips/${id}`, { method: "DELETE" }),
-  createProposal: (tripId: string, body: { title: string }) =>
-    request<ProposalDetail>(`/api/trips/${tripId}/proposals`, { method: "POST", body }),
-  getProposal: (tripId: string, proposalId: string) =>
-    request<ProposalDetail>(`/api/trips/${tripId}/proposals/${proposalId}`),
-  updateProposal: (tripId: string, proposalId: string, body: { title: string }) =>
-    request<ProposalDetail>(`/api/trips/${tripId}/proposals/${proposalId}`, {
-      method: "PATCH",
-      body,
-    }),
-  deleteProposal: (tripId: string, proposalId: string) =>
-    request<void>(`/api/trips/${tripId}/proposals/${proposalId}`, { method: "DELETE" }),
-  addLine: (tripId: string, proposalId: string, body: LineInput | FlightInput | StayInput) =>
-    request<ProposalDetail>(`/api/trips/${tripId}/proposals/${proposalId}/lines`, {
-      method: "POST",
-      body,
-    }),
-  updateLine: (
+  listTrips: async (): Promise<TripSummary[]> => decodeTripSummaries(await request("/api/trips")),
+  createTrip: async (body: TripInput): Promise<TripDetail> =>
+    decodeTripDetail(await request("/api/trips", { method: "POST", body: encodeTripCreate(body) })),
+  getTrip: async (id: string): Promise<TripDetail> => decodeTripDetail(await request(`/api/trips/${id}`)),
+  updateTrip: async (id: string, body: TripPatch): Promise<TripDetail> =>
+    decodeTripDetail(await request(`/api/trips/${id}`, { method: "PATCH", body: encodeTripPatch(body) })),
+  deleteTrip: async (id: string): Promise<void> => {
+    await request(`/api/trips/${id}`, { method: "DELETE" });
+  },
+  createProposal: async (tripId: string, body: { title: string }): Promise<ProposalDetail> =>
+    decodeProposalDetail(
+      await request(`/api/trips/${tripId}/proposals`, { method: "POST", body: encodeProposalCreate(body) }),
+    ),
+  getProposal: async (tripId: string, proposalId: string): Promise<ProposalDetail> =>
+    decodeProposalDetail(await request(`/api/trips/${tripId}/proposals/${proposalId}`)),
+  updateProposal: async (tripId: string, proposalId: string, body: { title: string }): Promise<ProposalDetail> =>
+    decodeProposalDetail(
+      await request(`/api/trips/${tripId}/proposals/${proposalId}`, {
+        method: "PATCH",
+        body: encodeProposalPatch(body),
+      }),
+    ),
+  deleteProposal: async (tripId: string, proposalId: string): Promise<void> => {
+    await request(`/api/trips/${tripId}/proposals/${proposalId}`, { method: "DELETE" });
+  },
+  addLine: async (
+    tripId: string,
+    proposalId: string,
+    body: LineInput | FlightInput | StayInput,
+  ): Promise<ProposalDetail> =>
+    decodeProposalDetail(
+      await request(`/api/trips/${tripId}/proposals/${proposalId}/lines`, {
+        method: "POST",
+        body: encodeLineCreate(body),
+      }),
+    ),
+  updateLine: async (
     tripId: string,
     proposalId: string,
     lineId: string,
     body: LinePatch | FlightDetails | StayDetails,
-  ) =>
-    request<ProposalDetail>(`/api/trips/${tripId}/proposals/${proposalId}/lines/${lineId}`, {
-      method: "PATCH",
-      body,
-    }),
-  deleteLine: (tripId: string, proposalId: string, lineId: string) =>
-    request<ProposalDetail>(`/api/trips/${tripId}/proposals/${proposalId}/lines/${lineId}`, {
-      method: "DELETE",
-    }),
+  ): Promise<ProposalDetail> =>
+    decodeProposalDetail(
+      await request(`/api/trips/${tripId}/proposals/${proposalId}/lines/${lineId}`, {
+        method: "PATCH",
+        body: encodeLineUpdate(body),
+      }),
+    ),
+  deleteLine: async (tripId: string, proposalId: string, lineId: string): Promise<ProposalDetail> =>
+    decodeProposalDetail(
+      await request(`/api/trips/${tripId}/proposals/${proposalId}/lines/${lineId}`, { method: "DELETE" }),
+    ),
 };

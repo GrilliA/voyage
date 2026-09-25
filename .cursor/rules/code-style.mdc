@@ -10,7 +10,7 @@ Four rules. If a shorter version is clear on the first read, use that.
 
 ## TypeScript
 
-Product types come from `shared/domain.ts`. A category is `CategoryId`, not `string`. HTTP and JSON input stays `unknown` until `validate.ts` accepts it. No `any`. No `as`.
+Product types come from `shared/domain.ts`. A category is `CategoryId`, not `string`. HTTP and JSON input stays `unknown` until `shared/codec.ts` accepts it. No `any`. No `as`.
 
 ## Functions
 
@@ -24,7 +24,7 @@ function costPerPerson(totalCents: number, peopleCount: number): number {
 
 No classes, except `BadInput` and `NotFound`. No functional libraries, pipes, or monads. `map` and `filter` are enough.
 
-Side effects stay at the edges: writing the file in `store.ts`, answering a request, updating Vue view state. Totals and labels stay in `calc.ts`, `present.ts`, and `format.ts`.
+Side effects stay at the edges: writing rows in the trip repository, answering a request, updating Vue view state. Totals and labels stay in `core/money.ts`, `core/present.ts`, and `format.ts`.
 
 ## Names
 

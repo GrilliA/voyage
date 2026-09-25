@@ -1,10 +1,11 @@
-import { createApp } from "./app.ts";
-import { databaseUrlFromEnv, openDatabase } from "./data/db.ts";
-import { createStore } from "./data/store.ts";
+import { createApp } from "./api/app.ts";
+import { configFromEnv } from "./infrastructure/config.ts";
+import { openDatabase } from "./infrastructure/db.ts";
+import { createTripRepository } from "./infrastructure/trip-repository.ts";
 
-const { database } = await openDatabase(databaseUrlFromEnv());
-const port = Number(process.env.PORT) || 3001;
+const config = configFromEnv(process.env);
+const { database } = await openDatabase(config.databaseUrl);
 
-createApp(createStore(database)).listen(port, "127.0.0.1", () => {
-  console.log(`Voyage API on http://127.0.0.1:${port}`);
+createApp(createTripRepository(database)).listen(config.port, "127.0.0.1", () => {
+  console.log(`Voyage API on http://127.0.0.1:${config.port}`);
 });

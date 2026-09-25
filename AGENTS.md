@@ -23,8 +23,8 @@ Visible copy is Italian. Files, types, and functions stay English.
 ## Where the code lives
 
 - `shared/domain.ts` is the contract: categories, totals, and response shapes. Express and Vue import these types.
-- `be/src/domain/` calculates and validates. `calc.ts` builds totals. `present.ts` builds the cards. `validate.ts` checks input from outside.
-- `be/src/data/schema.ts` is the Postgres schema. `store.ts` reads and writes trips, proposals, and cost lines through Drizzle.
+- `shared/codec.ts` reads and writes the camelCase JSON. Zod checks the body on the way in and the cards on the way out. Vue uses the same schemas in `fe/src/api/client.ts`.
+- `be/src/core/` holds the trip, the totals, and the cards. `be/src/business/` is one action per endpoint. `be/src/infrastructure/` is Postgres: the Drizzle schema and the row codec (cents, dates, flight, stay). `be/src/api/` is Express. `be/src/index.ts` opens the database and wires them together.
 - `fe/src/views/` holds the three screens: `TripsView.vue`, `TripView.vue`, `ProposalView.vue`.
 
 ## Commands
