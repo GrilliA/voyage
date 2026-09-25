@@ -6,6 +6,13 @@ import { api, errorMessage } from "../api/client";
 import type { CostLine, FlightDetails, ProposalDetail, StayDetails, StepId } from "../api/types";
 import FlightForm from "../components/FlightForm.vue";
 import StayForm from "../components/StayForm.vue";
+import AppButton from "../components/buttons/AppButton.vue";
+import IconButton from "../components/buttons/IconButton.vue";
+import CostLineCard from "../components/cards/CostLineCard.vue";
+import CostLineRow from "../components/cards/CostLineRow.vue";
+import FormField from "../components/form/FormField.vue";
+import NumberInput from "../components/form/NumberInput.vue";
+import TextInput from "../components/form/TextInput.vue";
 import { formatMoney, formatNights, formatPeople, formatRange, formatStayIssue, formatStayNightLine, routeParam } from "../format";
 
 type EditorStep = {
@@ -283,7 +290,7 @@ watch(
     <template v-else-if="proposal">
       <header class="topbar">
         <RouterLink class="back" :to="{ name: 'trip', params: { tripId } }">← {{ proposal.trip.title }}</RouterLink>
-        <button class="button ghost danger" type="button" @click="confirmingDelete = true">Elimina</button>
+        <AppButton variant="ghost-danger" @click="confirmingDelete = true">Elimina</AppButton>
       </header>
 
       <input
@@ -300,8 +307,8 @@ watch(
       <div v-if="confirmingDelete" class="banner quiet">
         <span>Eliminare questa proposta?</span>
         <span class="actions">
-          <button class="button ghost" type="button" @click="confirmingDelete = false">Annulla</button>
-          <button class="button danger" type="button" :disabled="saving" @click="removeProposal">Elimina</button>
+          <AppButton variant="ghost" @click="confirmingDelete = false">Annulla</AppButton>
+          <AppButton variant="danger" :disabled="saving" @click="removeProposal">Elimina</AppButton>
         </span>
       </div>
 
@@ -323,7 +330,7 @@ watch(
         </nav>
 
         <section class="stage">
-          <p class="step-count">{{ stepIndex + 1 }} / {{ steps.length }}</p>
+          <p class="kicker">{{ stepIndex + 1 }} / {{ steps.length }}</p>
           <h2>{{ currentStep.label }}</h2>
           <p class="lede">{{ currentStep.hint }}</p>
           <p v-if="currentStep.id !== 'persone'" class="section-subtotal">
@@ -334,10 +341,9 @@ watch(
           </p>
 
           <div v-if="currentStep.id === 'persone'" class="people-field">
-            <label class="field">
-              Persone
-              <input v-model.number="people" type="number" min="1" max="99" @change="savePeople" />
-            </label>
+            <FormField label="Persone">
+              <NumberInput v-model.number="people" min="1" max="99" @change="savePeople" />
+            </FormField>
           </div>
           <template v-else>
             <ul v-if="currentLines.length" class="lines">
@@ -352,30 +358,25 @@ watch(
                   @submit="updateStay(line, $event)"
                   @cancel="editingStayId = null"
                 />
-                <article v-else-if="line.stay" class="flight">
-                  <div class="flight-routes">
-                    <p><span>Luogo</span> {{ line.stay.place }}</p>
-                    <p><span>Date</span> {{ formatRange(line.stay.checkIn, line.stay.checkOut) }}</p>
-                    <p v-if="line.stay.link">
-                      <span>Link</span>
-                      <a :href="line.stay.link" target="_blank" rel="noopener noreferrer">Apri</a>
-                    </p>
-                  </div>
-                  <div class="flight-foot">
-                    <p class="flight-price">
-                      <template v-if="line.stay.basis === 'persona'">
-                        {{ formatMoney(line.stay.price) }} a persona
-                        <small>{{ formatMoney(line.amount) }} nel totale</small>
-                      </template>
-                      <template v-else>{{ formatMoney(line.amount) }} totale</template>
-                      <small>{{ formatStayNightLine(line.amount, line.stay.checkIn, line.stay.checkOut) }}</small>
-                    </p>
-                    <span class="actions">
-                      <button class="button ghost" type="button" @click="editingStayId = line.id">Modifica</button>
-                      <button class="icon-button" type="button" aria-label="Rimuovi soggiorno" @click="removeLine(line)">×</button>
-                    </span>
-                  </div>
-                </article>
+                <CostLineCard v-else-if="line.stay">
+                  <CostLineRow label="Luogo">{{ line.stay.place }}</CostLineRow>
+                  <CostLineRow label="Date">{{ formatRange(line.stay.checkIn, line.stay.checkOut) }}</CostLineRow>
+                  <CostLineRow v-if="line.stay.link" label="Link">
+                    <a :href="line.stay.link" target="_blank" rel="noopener noreferrer">Apri</a>
+                  </CostLineRow>
+                  <template #price>
+                    <template v-if="line.stay.basis === 'persona'">
+                      {{ formatMoney(line.stay.price) }} a persona
+                      <small>{{ formatMoney(line.amount) }} nel totale</small>
+                    </template>
+                    <template v-else>{{ formatMoney(line.amount) }} totale</template>
+                    <small>{{ formatStayNightLine(line.amount, line.stay.checkIn, line.stay.checkOut) }}</small>
+                  </template>
+                  <template #actions>
+                    <AppButton variant="ghost" @click="editingStayId = line.id">Modifica</AppButton>
+                    <IconButton label="Rimuovi soggiorno" @click="removeLine(line)">×</IconButton>
+                  </template>
+                </CostLineCard>
                 <FlightForm
                   v-else-if="line.flight && editingFlightId === line.id"
                   :people="proposal.trip.people"
@@ -386,36 +387,31 @@ watch(
                   @submit="updateFlight(line, $event)"
                   @cancel="editingFlightId = null"
                 />
-                <article v-else-if="line.flight" class="flight">
-                  <div class="flight-routes">
-                    <p><span>Andata</span> {{ line.flight.outboundFrom }} → {{ line.flight.outboundTo }}</p>
-                    <p><span>Ritorno</span> {{ line.flight.returnFrom }} → {{ line.flight.returnTo }}</p>
-                  </div>
-                  <div class="flight-foot">
-                    <p class="flight-price">
-                      <template v-if="line.flight.basis === 'persona'">
-                        {{ formatMoney(line.flight.price) }} a persona
-                        <small>{{ formatMoney(line.amount) }} nel totale</small>
-                      </template>
-                      <template v-else>{{ formatMoney(line.amount) }} totale</template>
-                    </p>
-                    <span class="actions">
-                      <button class="button ghost" type="button" @click="editingFlightId = line.id">Modifica</button>
-                      <button class="icon-button" type="button" aria-label="Rimuovi volo" @click="removeLine(line)">×</button>
-                    </span>
-                  </div>
-                </article>
+                <CostLineCard v-else-if="line.flight">
+                  <CostLineRow label="Andata">{{ line.flight.outboundFrom }} → {{ line.flight.outboundTo }}</CostLineRow>
+                  <CostLineRow label="Ritorno">{{ line.flight.returnFrom }} → {{ line.flight.returnTo }}</CostLineRow>
+                  <template #price>
+                    <template v-if="line.flight.basis === 'persona'">
+                      {{ formatMoney(line.flight.price) }} a persona
+                      <small>{{ formatMoney(line.amount) }} nel totale</small>
+                    </template>
+                    <template v-else>{{ formatMoney(line.amount) }} totale</template>
+                  </template>
+                  <template #actions>
+                    <AppButton variant="ghost" @click="editingFlightId = line.id">Modifica</AppButton>
+                    <IconButton label="Rimuovi volo" @click="removeLine(line)">×</IconButton>
+                  </template>
+                </CostLineCard>
                 <div v-else class="line">
-                  <input v-model="line.label" type="text" aria-label="Descrizione" @blur="saveLine(line)" />
-                  <input
+                  <TextInput v-model="line.label" aria-label="Descrizione" @blur="saveLine(line)" />
+                  <NumberInput
                     v-model.number="line.amount"
-                    type="number"
                     min="0"
                     step="0.01"
                     aria-label="Importo in euro"
                     @blur="saveLine(line)"
                   />
-                  <button class="icon-button" type="button" aria-label="Rimuovi voce" @click="removeLine(line)">×</button>
+                  <IconButton label="Rimuovi voce" @click="removeLine(line)">×</IconButton>
                 </div>
               </li>
             </ul>
@@ -425,6 +421,7 @@ watch(
             <FlightForm
               v-if="currentStep.id === 'voli'"
               :key="newFlightKey"
+              class="add-form"
               :people="proposal.trip.people"
               :saving="saving"
               submit-label="Aggiungi volo"
@@ -434,6 +431,7 @@ watch(
             <StayForm
               v-else-if="currentStep.id === 'alloggio'"
               :key="newStayKey"
+              class="add-form"
               :people="proposal.trip.people"
               :saving="saving"
               submit-label="Aggiungi soggiorno"
@@ -442,35 +440,34 @@ watch(
               @submit="addStay"
             />
             <form v-else class="add-line" @submit.prevent="addLine">
-              <input v-model="draft.label" type="text" maxlength="120" placeholder="Descrizione" aria-label="Nuova descrizione" />
-              <input
+              <TextInput v-model="draft.label" maxlength="120" placeholder="Descrizione" aria-label="Nuova descrizione" />
+              <NumberInput
                 v-model="draft.amount"
-                type="number"
                 min="0"
                 step="0.01"
                 placeholder="Importo"
                 aria-label="Nuovo importo in euro"
               />
-              <button class="button" type="submit" :disabled="saving">Aggiungi</button>
+              <AppButton type="submit" :disabled="saving">Aggiungi</AppButton>
             </form>
           </template>
 
           <div class="stage-nav">
-            <button v-if="prevStep" class="button secondary" type="button" @click="current = prevStep.id">
+            <AppButton v-if="prevStep" variant="secondary" @click="current = prevStep.id">
               Indietro
-            </button>
+            </AppButton>
             <span v-else></span>
-            <button v-if="nextStep" class="button" type="button" @click="current = nextStep.id">
+            <AppButton v-if="nextStep" @click="current = nextStep.id">
               Continua · {{ nextStep.label }}
-            </button>
-            <RouterLink v-else class="button" :to="{ name: 'trip', params: { tripId } }">
+            </AppButton>
+            <AppButton v-else :to="{ name: 'trip', params: { tripId } }">
               Vedi le proposte
-            </RouterLink>
+            </AppButton>
           </div>
         </section>
 
         <aside class="summary" aria-live="polite">
-          <p class="summary-kicker">Totale</p>
+          <p class="kicker">Totale</p>
           <p class="summary-total">{{ formatMoney(proposal.totals.total) }}</p>
           <p class="summary-person">{{ formatMoney(proposal.totals.perPerson) }} a persona</p>
           <p class="summary-note">{{ formatPeople(proposal.trip.people) }}</p>
@@ -479,3 +476,151 @@ watch(
     </template>
   </main>
 </template>
+
+<style scoped>
+.title-input {
+  width: 100%;
+  margin: 0 0 var(--space-6);
+  padding: 0 0 var(--space-2);
+  border: 0;
+  border-bottom: 1px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  font-family: var(--font-serif);
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 560;
+  letter-spacing: -0.03em;
+}
+
+.title-input:hover,
+.title-input:focus {
+  border-bottom-color: var(--color-field-border);
+  outline: none;
+}
+
+.editor {
+  display: grid;
+  grid-template-columns: 230px minmax(0, 1fr) 230px;
+  gap: var(--space-5);
+  align-items: start;
+}
+
+.steps { display: grid; gap: var(--space-2); }
+
+.step {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  align-items: center;
+  width: 100%;
+  padding: var(--space-3);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  text-align: left;
+}
+
+.step small { color: var(--color-muted); }
+.step.active { background: var(--color-card); box-shadow: var(--shadow-raised); }
+
+.step-index {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-pill);
+  background: var(--color-step);
+  font-size: var(--text-xs);
+}
+
+.step.active .step-index { background: var(--color-accent); color: var(--color-on-accent); }
+
+.stage {
+  display: flex;
+  flex-direction: column;
+  min-height: 460px;
+  padding: var(--space-7);
+  border-radius: var(--radius-xl);
+  background: var(--color-card);
+}
+
+.section-subtotal {
+  margin: var(--space-3) 0 0;
+  font-family: var(--font-serif);
+  font-size: 1.4rem;
+  font-weight: 560;
+  letter-spacing: -0.03em;
+}
+
+.stay-pace {
+  margin: var(--space-2) 0 0;
+  color: var(--color-muted);
+}
+
+.people-field { max-width: 180px; margin-top: var(--space-6); }
+
+.lines { display: grid; gap: var(--space-3); margin: var(--space-6) 0 0; padding: 0; list-style: none; }
+
+.line, .add-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 130px auto;
+  gap: var(--space-2);
+}
+
+.add-line { margin-top: var(--space-3); }
+
+.add-form { margin-top: var(--space-6); }
+
+.stay-notes {
+  margin: var(--space-4) 0 0;
+  padding-left: 1.1rem;
+  color: var(--color-muted);
+}
+
+.stay-notes li + li { margin-top: var(--space-1); }
+
+.stage-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: auto;
+  padding-top: var(--space-7);
+}
+
+.summary {
+  position: sticky;
+  top: var(--space-6);
+  padding: var(--space-6);
+  border-radius: var(--radius-xl);
+  background: var(--color-ink);
+  color: var(--color-on-accent);
+}
+
+.summary .kicker, .summary-note { color: var(--color-on-dark-muted); }
+
+.summary-total {
+  margin: var(--space-2) 0 0;
+  font-family: var(--font-serif);
+  font-size: 2.3rem;
+  font-weight: 560;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.summary-person { margin: var(--space-3) 0 0; font-size: 1.05rem; }
+.summary-note { margin: var(--space-2) 0 0; }
+
+@media (max-width: 900px) {
+  .editor { grid-template-columns: 1fr; }
+  .summary { position: static; order: -1; }
+  .steps {
+    display: flex;
+    gap: var(--space-2);
+    overflow-x: auto;
+    padding-bottom: var(--space-1);
+  }
+  .step { width: auto; flex: 0 0 auto; }
+  .line, .add-line { grid-template-columns: 1fr; }
+}
+</style>

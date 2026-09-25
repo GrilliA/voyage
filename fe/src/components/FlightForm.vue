@@ -2,6 +2,13 @@
 import { computed, reactive, ref, watch } from "vue";
 import { totalForBasis, type FlightDetails, type PriceBasis } from "../../../shared/domain";
 import { formatMoney, formatPeople } from "../format";
+import AppButton from "./buttons/AppButton.vue";
+import BasisToggle from "./form/BasisToggle.vue";
+import FieldGroup from "./form/FieldGroup.vue";
+import FormField from "./form/FormField.vue";
+import FormPanel from "./form/FormPanel.vue";
+import NumberInput from "./form/NumberInput.vue";
+import TextInput from "./form/TextInput.vue";
 
 const props = withDefaults(
   defineProps<{
@@ -106,80 +113,45 @@ function submit() {
 </script>
 
 <template>
-  <form class="flight-form" @submit.prevent="submit">
-    <div class="basis" role="radiogroup" aria-label="Il prezzo è">
-      <button
-        type="button"
-        role="radio"
-        :aria-checked="form.basis === 'totale'"
-        :class="{ active: form.basis === 'totale' }"
-        @click="form.basis = 'totale'"
-      >
-        Totale
-      </button>
-      <button
-        type="button"
-        role="radio"
-        :aria-checked="form.basis === 'persona'"
-        :class="{ active: form.basis === 'persona' }"
-        @click="form.basis = 'persona'"
-      >
-        A persona
-      </button>
-    </div>
+  <FormPanel @submit="submit">
+    <BasisToggle v-model="form.basis" />
 
-    <fieldset class="leg-set">
-      <legend>Andata</legend>
-      <div class="leg">
-        <label class="field">
-          Da
-          <input
-            v-model="form.outboundFrom"
-            type="text"
-            maxlength="40"
-            placeholder="Milano"
-            required
-            @blur="fillReturnTo"
-          />
-        </label>
-        <label class="field">
-          A
-          <input
-            v-model="form.outboundTo"
-            type="text"
-            maxlength="40"
-            placeholder="Quito"
-            required
-            @blur="fillReturnFrom"
-          />
-        </label>
-      </div>
-    </fieldset>
+    <FieldGroup legend="Andata">
+      <FormField label="Da">
+        <TextInput v-model="form.outboundFrom" maxlength="40" placeholder="Milano" required @blur="fillReturnTo" />
+      </FormField>
+      <FormField label="A">
+        <TextInput v-model="form.outboundTo" maxlength="40" placeholder="Quito" required @blur="fillReturnFrom" />
+      </FormField>
+    </FieldGroup>
 
-    <fieldset class="leg-set">
-      <legend>Ritorno</legend>
-      <div class="leg">
-        <label class="field">
-          Da
-          <input v-model="form.returnFrom" type="text" maxlength="40" placeholder="Quito" required />
-        </label>
-        <label class="field">
-          A
-          <input v-model="form.returnTo" type="text" maxlength="40" placeholder="Milano" required />
-        </label>
-      </div>
-    </fieldset>
+    <FieldGroup legend="Ritorno">
+      <FormField label="Da">
+        <TextInput v-model="form.returnFrom" maxlength="40" placeholder="Quito" required />
+      </FormField>
+      <FormField label="A">
+        <TextInput v-model="form.returnTo" maxlength="40" placeholder="Milano" required />
+      </FormField>
+    </FieldGroup>
 
-    <label class="field">
-      {{ form.basis === "persona" ? "Prezzo a persona" : "Prezzo totale" }}
-      <input v-model="form.price" type="number" min="0" step="0.01" inputmode="decimal" required />
-    </label>
-    <p v-if="preview" class="flight-preview">{{ preview }}</p>
+    <FormField :label="form.basis === 'persona' ? 'Prezzo a persona' : 'Prezzo totale'">
+      <NumberInput v-model="form.price" min="0" step="0.01" inputmode="decimal" required />
+    </FormField>
+    <p v-if="preview" class="preview">{{ preview }}</p>
     <p v-if="error" class="banner" role="alert">{{ error }}</p>
 
-    <div class="flight-actions">
-      <button v-if="showCancel" class="button secondary" type="button" @click="emit('cancel')">Annulla</button>
-      <button class="button" type="submit" :disabled="saving">{{ submitLabel }}</button>
-    </div>
-  </form>
+    <template #actions>
+      <AppButton v-if="showCancel" variant="secondary" @click="emit('cancel')">Annulla</AppButton>
+      <AppButton type="submit" :disabled="saving">{{ submitLabel }}</AppButton>
+    </template>
+  </FormPanel>
 </template>
+
+<style scoped>
+.preview {
+  margin: calc(-1 * var(--space-2)) 0 0;
+  color: var(--color-muted);
+}
+
+.banner { margin: 0; }
+</style>

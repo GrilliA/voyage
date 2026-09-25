@@ -3,6 +3,7 @@ import { onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { api, errorMessage } from "../api/client";
 import type { TripInput, TripSummary } from "../api/types";
+import AppButton from "../components/buttons/AppButton.vue";
 import TripCard from "../components/TripCard.vue";
 import TripDialog from "../components/TripDialog.vue";
 
@@ -62,7 +63,7 @@ onMounted(() => {
         <h1>I tuoi viaggi</h1>
         <p class="lede">Apri una scheda per vedere le proposte e confrontare i costi.</p>
       </div>
-      <button class="button" type="button" @click="openCreate">Nuovo viaggio</button>
+      <AppButton @click="openCreate">Nuovo viaggio</AppButton>
     </header>
 
     <p v-if="error" class="banner" role="alert">{{ error }}</p>

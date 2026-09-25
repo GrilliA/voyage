@@ -8,6 +8,14 @@ import {
   type StayDetails,
 } from "../../../shared/domain";
 import { formatMoney, formatNights, formatPeople } from "../format";
+import AppButton from "./buttons/AppButton.vue";
+import BasisToggle from "./form/BasisToggle.vue";
+import DateInput from "./form/DateInput.vue";
+import FieldGroup from "./form/FieldGroup.vue";
+import FormField from "./form/FormField.vue";
+import FormPanel from "./form/FormPanel.vue";
+import NumberInput from "./form/NumberInput.vue";
+import TextInput from "./form/TextInput.vue";
 
 const props = withDefaults(
   defineProps<{
@@ -139,62 +147,44 @@ function submit() {
 </script>
 
 <template>
-  <form class="stay-form" @submit.prevent="submit">
-    <div class="basis" role="radiogroup" aria-label="Il prezzo è">
-      <button
-        type="button"
-        role="radio"
-        :aria-checked="form.basis === 'totale'"
-        :class="{ active: form.basis === 'totale' }"
-        @click="form.basis = 'totale'"
-      >
-        Totale
-      </button>
-      <button
-        type="button"
-        role="radio"
-        :aria-checked="form.basis === 'persona'"
-        :class="{ active: form.basis === 'persona' }"
-        @click="form.basis = 'persona'"
-      >
-        A persona
-      </button>
-    </div>
+  <FormPanel @submit="submit">
+    <BasisToggle v-model="form.basis" />
 
-    <label class="field">
-      Luogo
-      <input v-model="form.place" type="text" maxlength="80" placeholder="Quito" required />
-    </label>
+    <FormField label="Luogo">
+      <TextInput v-model="form.place" maxlength="80" placeholder="Quito" required />
+    </FormField>
 
-    <label class="field">
-      Link
-      <input v-model="form.link" type="url" maxlength="2000" placeholder="https://…" />
-    </label>
+    <FormField label="Link">
+      <TextInput v-model="form.link" type="url" maxlength="2000" placeholder="https://…" />
+    </FormField>
 
-    <fieldset class="leg-set">
-      <legend>Date</legend>
-      <div class="leg">
-        <label class="field">
-          Dal
-          <input v-model="form.checkIn" type="date" required />
-        </label>
-        <label class="field">
-          Al
-          <input v-model="form.checkOut" type="date" :min="form.checkIn || undefined" required />
-        </label>
-      </div>
-    </fieldset>
+    <FieldGroup legend="Date">
+      <FormField label="Dal">
+        <DateInput v-model="form.checkIn" required />
+      </FormField>
+      <FormField label="Al">
+        <DateInput v-model="form.checkOut" :min="form.checkIn || undefined" required />
+      </FormField>
+    </FieldGroup>
 
-    <label class="field">
-      {{ form.basis === "persona" ? "Prezzo a persona" : "Prezzo totale" }}
-      <input v-model="form.price" type="number" min="0" step="0.01" inputmode="decimal" required />
-    </label>
-    <p v-if="preview" class="flight-preview">{{ preview }}</p>
+    <FormField :label="form.basis === 'persona' ? 'Prezzo a persona' : 'Prezzo totale'">
+      <NumberInput v-model="form.price" min="0" step="0.01" inputmode="decimal" required />
+    </FormField>
+    <p v-if="preview" class="preview">{{ preview }}</p>
     <p v-if="error" class="banner" role="alert">{{ error }}</p>
 
-    <div class="flight-actions">
-      <button v-if="showCancel" class="button secondary" type="button" @click="emit('cancel')">Annulla</button>
-      <button class="button" type="submit" :disabled="saving">{{ submitLabel }}</button>
-    </div>
-  </form>
+    <template #actions>
+      <AppButton v-if="showCancel" variant="secondary" @click="emit('cancel')">Annulla</AppButton>
+      <AppButton type="submit" :disabled="saving">{{ submitLabel }}</AppButton>
+    </template>
+  </FormPanel>
 </template>
+
+<style scoped>
+.preview {
+  margin: calc(-1 * var(--space-2)) 0 0;
+  color: var(--color-muted);
+}
+
+.banner { margin: 0; }
+</style>

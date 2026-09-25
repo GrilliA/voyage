@@ -26,6 +26,8 @@ Visible copy is Italian. Files, types, and functions stay English.
 - `be/src/domain/` calculates and validates. `calc.ts` builds totals. `present.ts` builds the cards. `validate.ts` checks input from outside.
 - `be/src/data/schema.ts` is the Postgres schema. `store.ts` reads and writes trips, proposals, and cost lines through Drizzle.
 - `fe/src/views/` holds the three screens: `TripsView.vue`, `TripView.vue`, `ProposalView.vue`.
+- `fe/src/styles/` holds the global CSS. `tokens.css` is the only place for colors, fonts, radii, shadows, and spacing. `base.css` and `layout.css` hold what several screens share.
+- `fe/src/components/form/`, `buttons/`, and `cards/` hold the base components (inputs, buttons, cards). Each has a `<style scoped>` that uses only tokens. Domain components (`StayForm`, `TripCard`, …) sit in `fe/src/components/` and are built from them.
 
 ## Commands
 

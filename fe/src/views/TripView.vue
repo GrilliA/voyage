@@ -4,6 +4,10 @@ import { useRoute, useRouter } from "vue-router";
 import { api, errorMessage } from "../api/client";
 import type { TripDetail, TripInput } from "../api/types";
 import { formatPeople, formatRange, routeParam, stripColor } from "../format";
+import AppButton from "../components/buttons/AppButton.vue";
+import AppCard from "../components/cards/AppCard.vue";
+import FormField from "../components/form/FormField.vue";
+import TextInput from "../components/form/TextInput.vue";
 import ProposalCard from "../components/ProposalCard.vue";
 import TripDialog from "../components/TripDialog.vue";
 
@@ -116,8 +120,8 @@ watch(() => route.params.tripId, () => void load(), { immediate: true });
           <p class="lede">{{ formatRange(trip.startDate, trip.endDate) }} · {{ formatPeople(trip.people) }}</p>
         </div>
         <div class="actions">
-          <button class="button secondary" type="button" @click="openEdit">Modifica</button>
-          <button class="button ghost danger" type="button" @click="confirmingDelete = true">Elimina</button>
+          <AppButton variant="secondary" @click="openEdit">Modifica</AppButton>
+          <AppButton variant="ghost-danger" @click="confirmingDelete = true">Elimina</AppButton>
         </div>
       </header>
 
@@ -125,8 +129,8 @@ watch(() => route.params.tripId, () => void load(), { immediate: true });
       <div v-if="confirmingDelete" class="banner quiet">
         <span>Eliminare questo viaggio e tutte le proposte?</span>
         <span class="actions">
-          <button class="button ghost" type="button" @click="confirmingDelete = false">Annulla</button>
-          <button class="button danger" type="button" :disabled="saving" @click="removeTrip">Elimina</button>
+          <AppButton variant="ghost" @click="confirmingDelete = false">Annulla</AppButton>
+          <AppButton variant="danger" :disabled="saving" @click="removeTrip">Elimina</AppButton>
         </span>
       </div>
 
@@ -144,21 +148,22 @@ watch(() => route.params.tripId, () => void load(), { immediate: true });
           :to="{ name: 'proposal', params: { tripId: trip.id, proposalId: proposal.id } }"
         />
 
-        <button v-if="!composing" class="card card-add" type="button" @click="composing = true">
-          <strong>Nuova proposta</strong>
-          <span>Una scheda da compilare e confrontare</span>
-        </button>
-        <form v-else class="card card-add" @submit.prevent="createProposal">
-          <label class="field">
-            Titolo della proposta
-            <input v-model="proposalTitle" type="text" maxlength="80" required autofocus placeholder="Costa, via Quito…" />
-          </label>
-          <p v-if="proposalError" class="banner" role="alert">{{ proposalError }}</p>
-          <div class="actions">
-            <button class="button secondary" type="button" @click="composing = false">Annulla</button>
-            <button class="button" type="submit" :disabled="saving">Crea scheda</button>
-          </div>
-        </form>
+        <AppCard v-if="!composing" as="button" variant="add" @click="composing = true">
+          <strong class="add-title">Nuova proposta</strong>
+          <span class="add-hint">Una scheda da compilare e confrontare</span>
+        </AppCard>
+        <AppCard v-else variant="add">
+          <form class="new-proposal" @submit.prevent="createProposal">
+            <FormField label="Titolo della proposta">
+              <TextInput v-model="proposalTitle" maxlength="80" required autofocus placeholder="Costa, via Quito…" />
+            </FormField>
+            <p v-if="proposalError" class="banner" role="alert">{{ proposalError }}</p>
+            <div class="actions">
+              <AppButton variant="secondary" @click="composing = false">Annulla</AppButton>
+              <AppButton type="submit" :disabled="saving">Crea scheda</AppButton>
+            </div>
+          </form>
+        </AppCard>
       </section>
 
       <TripDialog
@@ -174,3 +179,11 @@ watch(() => route.params.tripId, () => void load(), { immediate: true });
     </template>
   </main>
 </template>
+
+<style scoped>
+.add-title { font-size: 1.2rem; }
+.add-hint { color: var(--color-muted); }
+
+.new-proposal { display: grid; gap: var(--space-4); }
+.new-proposal .banner { margin: 0; }
+</style>
