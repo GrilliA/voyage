@@ -9,13 +9,13 @@ defineProps<{ label: string }>();
 <style scoped>
 .icon-button {
   flex: 0 0 auto;
-  width: 42px;
-  height: 42px;
-  border: 1px solid var(--color-line);
+  width: var(--size-control);
+  height: var(--size-control);
+  border: var(--border-width) solid var(--color-line);
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--color-muted);
-  font-size: 1.3rem;
-  line-height: 1;
+  font-size: var(--text-lg);
+  line-height: var(--leading-none);
 }
 </style>

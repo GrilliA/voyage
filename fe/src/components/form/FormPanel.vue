@@ -15,14 +15,24 @@ const emit = defineEmits<{ submit: [] }>();
 .form-panel {
   display: grid;
   gap: var(--space-4);
-  padding: var(--space-5);
-  border: 1px solid var(--color-line);
+  padding: var(--space-4);
+  border: var(--border-width) solid var(--color-line);
   border-radius: var(--radius-lg);
 }
 
 .panel-actions {
   display: flex;
-  justify-content: flex-end;
+  flex-direction: column;
+  align-items: stretch;
   gap: var(--space-3);
+}
+
+@media (min-width: 40rem) {
+  .form-panel { padding: var(--space-5); }
+
+  .panel-actions {
+    flex-direction: row;
+    justify-content: flex-end;
+  }
 }
 </style>

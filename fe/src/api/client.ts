@@ -20,10 +20,9 @@ import type {
   TripSummary,
 } from "./types.ts";
 
-type RequestOptions = {
-  method?: "GET" | "POST" | "PATCH" | "DELETE";
-  body?: unknown;
-};
+type RequestOptions =
+  | { method: "GET" | "DELETE" }
+  | { method: "POST" | "PATCH"; body: unknown };
 
 export function errorMessage(caught: unknown): string {
   if (caught instanceof Error && caught.message) return caught.message;
@@ -37,22 +36,29 @@ function errorText(value: unknown): string {
   return "Qualcosa non ha funzionato.";
 }
 
-async function request(path: string, options: RequestOptions = {}): Promise<unknown> {
+function requestInit(options: RequestOptions): RequestInit {
+  if (options.method === "POST" || options.method === "PATCH") {
+    return {
+      method: options.method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(options.body),
+    };
+  }
+  return { method: options.method };
+}
+
+async function request(path: string, options: RequestOptions = { method: "GET" }): Promise<unknown> {
   let response: Response;
   try {
-    response = await fetch(path, {
-      method: options.method ?? "GET",
-      headers: options.body ? { "Content-Type": "application/json" } : undefined,
-      body: options.body ? JSON.stringify(options.body) : undefined,
-    });
+    response = await fetch(path, requestInit(options));
   } catch {
     throw new Error("Il server non risponde.");
   }
 
-  if (response.status === 204) return undefined;
-  const data: unknown = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(errorText(data));
-  return data;
+  if (response.status === 204) return null;
+  const payload: unknown = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(errorText(payload));
+  return payload;
 }
 
 export type LineInput = {

@@ -12,15 +12,15 @@ const emptyDraft = (): TripInput => ({ title: "", startDate: "", endDate: "", pe
 const router = useRouter();
 const trips = ref<TripSummary[]>([]);
 const loading = ref(true);
-const error = ref("");
-const formError = ref("");
+const error = ref<string | null>(null);
+const formError = ref<string | null>(null);
 const saving = ref(false);
 const creating = ref(false);
 const draft = ref<TripInput>(emptyDraft());
 
 async function load() {
   loading.value = true;
-  error.value = "";
+  error.value = null;
   try {
     trips.value = await api.listTrips();
   } catch (caught) {
@@ -32,13 +32,13 @@ async function load() {
 
 function openCreate() {
   draft.value = emptyDraft();
-  formError.value = "";
+  formError.value = null;
   creating.value = true;
 }
 
 async function createTrip(payload: TripInput) {
   saving.value = true;
-  formError.value = "";
+  formError.value = null;
   try {
     const trip = await api.createTrip(payload);
     await router.push({ name: "trip", params: { tripId: trip.id } });

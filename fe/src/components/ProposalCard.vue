@@ -25,7 +25,3 @@ defineProps<{
     </div>
   </AppCard>
 </template>
-
-<style scoped>
-h2 { font-size: 1.85rem; }
-</style>

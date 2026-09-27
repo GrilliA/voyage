@@ -4,12 +4,12 @@ import type { RouteLocationRaw } from "vue-router";
 withDefaults(
   defineProps<{
     to?: RouteLocationRaw;
-    as?: "div" | "button";
+    tag?: "div" | "button";
     variant?: "default" | "add";
     highlighted?: boolean;
     accentTop?: boolean;
   }>(),
-  { to: undefined, as: "div", variant: "default", highlighted: false, accentTop: false },
+  { tag: "div", variant: "default", highlighted: false, accentTop: false },
 );
 </script>
 
@@ -22,7 +22,7 @@ withDefaults(
   >
     <slot />
   </RouterLink>
-  <button v-else-if="as === 'button'" class="card" :class="[variant, { 'accent-top': accentTop }]" type="button">
+  <button v-else-if="tag === 'button'" class="card" :class="[variant, { 'accent-top': accentTop }]" type="button">
     <slot />
   </button>
   <div v-else class="card" :class="[variant, { 'accent-top': accentTop }]">
@@ -34,11 +34,11 @@ withDefaults(
 .card {
   display: flex;
   flex-direction: column;
-  min-height: 250px;
-  padding: var(--space-6);
+  min-height: 0;
+  padding: var(--space-5);
   border-radius: var(--radius-xl);
   background: var(--color-card);
-  border: 1px solid var(--color-card-border);
+  border: var(--border-width) solid var(--color-card-border);
   box-shadow: var(--shadow-card);
   text-decoration: none;
   color: inherit;
@@ -46,19 +46,33 @@ withDefaults(
 }
 
 .link { transition: transform 160ms ease, box-shadow 160ms ease; }
-.link:hover { transform: translateY(-4px); }
 
-.highlighted { box-shadow: 0 0 0 2px var(--color-accent), var(--shadow-cheapest); }
+.highlighted { box-shadow: 0 0 0 var(--focus-ring) var(--color-accent), var(--shadow-cheapest); }
 
-.accent-top { border-top: 4px solid var(--color-accent); }
+.accent-top { border-top: var(--border-mark) solid var(--color-accent); }
 
 .add {
   width: 100%;
   gap: var(--space-4);
-  border: 1.5px dashed var(--color-dashed);
+  border: var(--border-width) dashed var(--color-dashed);
   background: transparent;
   box-shadow: none;
 }
 
 button.add { justify-content: center; }
+
+@media (min-width: 40rem) {
+  .card {
+    min-height: var(--size-card-block);
+    padding: var(--space-6);
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .link:hover { transform: translateY(calc(-1 * var(--space-1))); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .link { transition: none; }
+}
 </style>

@@ -6,11 +6,13 @@ alwaysApply: false
 
 # Code style
 
-Four rules. If a shorter version is clear on the first read, use that.
+If a shorter version is clear on the first read, use that.
 
 ## TypeScript
 
-Product types come from `shared/domain.ts`. A category is `CategoryId`, not `string`. HTTP and JSON input stays `unknown` until `shared/codec.ts` accepts it. No `any`. No `as`.
+Product types come from `shared/domain.ts`. A category is `CategoryId`, not `string`. HTTP and JSON input stays `unknown` until `shared/codec.ts` accepts it. No `any`. No `as` to silence a check. `as const` on a real tuple is fine.
+
+A missing trip, proposal, flight, stay, or error is `null`. `undefined` only where a platform type has a hole: a missing array element, or the previous value of a Vue watch. Do not add `| undefined` to a domain value, and do not default a prop to `undefined`.
 
 ## Functions
 
@@ -40,3 +42,9 @@ A function starts with a verb: `formatMoney`, `presentTripSummary`. A boolean st
 ## Simple
 
 A function does one thing. If the name needs an explanation, rename it. Do not extract a helper that is used once. Do not add a layer "for later".
+
+## Vue and CSS
+
+`<script setup lang="ts">`. Props and emits are typed. A prop that every screen passes is required. Do not `v-model` into a trip, proposal, or line that came from the API.
+
+Colors, type, space, radius, shadow, and layout sizes live in `fe/src/styles/tokens.css`. Use those variables. Space, type, radius, and layout sizes are `rem`. A hairline border is `1px`. The base style is the phone; a wider layout uses `@media (min-width: …)`, at `40rem` then `56rem`. The same rules are in `AGENTS.md`.
